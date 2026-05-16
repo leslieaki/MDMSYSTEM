@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   clearAuthSession,
@@ -428,7 +428,7 @@ function escapeCsvValue(value: string | number): string {
 }
 
 function downloadCsv(filename: string, csv: string): void {
-  const blob = new Blob([`﻿${csv}`], {
+  const blob = new Blob([`\uFEFF${csv}`], {
     type: "text/csv;charset=utf-8"
   });
   const url = URL.createObjectURL(blob);
@@ -485,12 +485,11 @@ function App() {
     return localStorage.getItem(CURRENT_EMPLOYEE_STORAGE_KEY) || "";
   });
 
-  const [search, setSearch] = useState("");
   const [reportSearch, setReportSearch] = useState("");
   const [reportCategory, setReportCategory] = useState("all");
   const [reportStatus, setReportStatus] = useState("all");
   const [isRefreshingReport, setIsRefreshingReport] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => Boolean(authSession));
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
 
@@ -542,26 +541,13 @@ function App() {
   );
 
   const role: Role = authSession?.user.role || "worker";
+  const activePage: Page = role === "worker" && page === "admin" ? "dashboard" : page;
 
   const visibleMenu = useMemo(() => {
     return menu.filter((item) => !item.adminOnly || role === "admin");
   }, [role]);
 
   const authenticatedUserName = authSession?.user.displayName || "Не авторизован";
-
-  const filteredParts = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return parts;
-    }
-
-    return parts.filter((part) =>
-      `${part.code} ${part.name} ${part.category} ${part.drawing} ${part.material} ${part.supplier}`
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [parts, search]);
 
   const lowStockParts = useMemo(() => {
     return parts.filter((part) => part.stock <= part.minStock);
@@ -616,14 +602,16 @@ function App() {
       : "Backend API подключен";
 
   function setPage(nextPage: Page) {
-    localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, nextPage);
+    const safePage: Page = role !== "admin" && nextPage === "admin" ? "dashboard" : nextPage;
 
-    if (getPageFromHash() === nextPage) {
-      setPageState(nextPage);
+    localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
+
+    if (getPageFromHash() === safePage) {
+      setPageState(safePage);
       return;
     }
 
-    window.location.hash = nextPage;
+    window.location.hash = safePage;
   }
 
   function clearActionError() {
@@ -1338,7 +1326,7 @@ function App() {
       }));
 
       addOperationLog(
-        "Загрузка",
+        "Загрузка чертежа",
         "Чертежи",
         `Загружено фото чертежа для ${part.code} — ${part.name}`
       );
@@ -1389,7 +1377,7 @@ function App() {
       });
 
       addOperationLog(
-        "Удаление",
+        "Удаление чертежа",
         "Чертежи",
         `Удалено фото чертежа для ${part.code} — ${part.name}`
       );
@@ -1446,7 +1434,7 @@ function App() {
     setPage("dashboard");
   }
 
-  async function loadData() {
+  const loadData = useCallback(async function loadData() {
     try {
       setIsLoading(true);
       setLoadError("");
@@ -1533,7 +1521,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [authenticatedUserName]);
 
   async function createPurchase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1786,16 +1774,21 @@ function App() {
     return () => {
       window.removeEventListener("hashchange", syncPageWithHash);
     };
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (!authSession) {
-      setIsLoading(false);
       return;
     }
 
-    void loadData();
-  }, [authSession]);
+    const timeoutId = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [authSession, loadData]);
 
   useEffect(() => {
     function closeTopModal(event: KeyboardEvent) {
@@ -1804,22 +1797,53 @@ function App() {
       }
 
       if (infoModal) {
-        closeInfoModal();
+        setInfoModal(null);
         return;
       }
 
       if (referenceModal) {
-        requestCloseReferenceModal();
+        const hasChanges =
+          !areReferenceFormsEqual(referenceForm, referenceFormInitial) ||
+          deleteReplacementName !== deleteReplacementNameInitial;
+
+        if (confirmDiscardChanges(hasChanges)) {
+          setReferenceModal(null);
+          setReferenceForm(initialReferenceForm);
+          setReferenceFormInitial(initialReferenceForm);
+          setDeleteReplacementName("");
+          setDeleteReplacementNameInitial("");
+          clearActionError();
+        }
+
         return;
       }
 
       if (nomenclatureModal) {
-        requestCloseNomenclatureModal();
+        const hasChanges =
+          !areNomenclatureFormsEqual(nomenclatureForm, nomenclatureFormInitial) ||
+          nomenclatureReplacementId !== nomenclatureReplacementIdInitial;
+
+        if (confirmDiscardChanges(hasChanges)) {
+          setNomenclatureModal(null);
+          setNomenclatureForm(initialNomenclatureForm);
+          setNomenclatureFormInitial(initialNomenclatureForm);
+          setNomenclatureReplacementId("");
+          setNomenclatureReplacementIdInitial("");
+          clearActionError();
+        }
+
         return;
       }
 
       if (partModal) {
-        requestClosePartModal();
+        const hasChanges = !arePartFormsEqual(partForm, partFormInitial);
+
+        if (confirmDiscardChanges(hasChanges)) {
+          setPartModal(null);
+          setPartForm(initialPartForm);
+          setPartFormInitial(initialPartForm);
+          clearActionError();
+        }
       }
     }
 
@@ -1845,16 +1869,6 @@ function App() {
     deleteReplacementNameInitial
   ]);
 
-  useEffect(() => {
-    if (!authSession) {
-      return;
-    }
-
-    if (role === "worker" && page === "admin") {
-      setPage("dashboard");
-    }
-  }, [authSession, role, page]);
-
   if (!authSession) {
     return (
       <LoginPage
@@ -1873,7 +1887,7 @@ function App() {
         authSession={authSession}
         currentEmployee={currentEmployee}
         menu={visibleMenu}
-        page={page}
+        page={activePage}
         role={role}
         onChangePage={setPage}
         onLogout={logout}
@@ -1900,7 +1914,7 @@ function App() {
           hasError={Boolean(loadError)}
         />
 
-        {page === "dashboard" && (
+        {activePage === "dashboard" && (
           <DashboardPage
             lowStockParts={lowStockParts}
             parts={parts}
@@ -1913,18 +1927,17 @@ function App() {
           />
         )}
 
-        {page === "parts" && (
+        {activePage === "parts" && (
           <PartsPage
-            filteredParts={filteredParts}
+            drawingImages={drawingImages}
+            parts={parts}
             role={role}
-            search={search}
-            onChangeSearch={setSearch}
             onOpenCreatePart={openCreatePartModal}
             onOpenPart={openPartByRole}
           />
         )}
 
-        {page === "purchases" && (
+        {activePage === "purchases" && (
           <PurchasesPage
             form={purchaseForm}
             isDisabled={Boolean(loadError) || parts.length === 0 || role !== "admin"}
@@ -1945,7 +1958,7 @@ function App() {
           />
         )}
 
-        {page === "warehouse" && (
+        {activePage === "warehouse" && (
           <WarehousePage
             items={stockReport}
             role={role}
@@ -1959,7 +1972,7 @@ function App() {
           />
         )}
 
-        {page === "reports" && (
+        {activePage === "reports" && (
           <ReportsPage
             categories={reportCategories}
             category={reportCategory}
@@ -1984,7 +1997,7 @@ function App() {
           />
         )}
 
-        {page === "employees" && (
+        {activePage === "employees" && (
           <EmployeesPage
             departments={departments}
             employees={employees}
@@ -1993,7 +2006,7 @@ function App() {
           />
         )}
 
-        {page === "drawings" && (
+        {activePage === "drawings" && (
           <DrawingsPage
             drawingImages={drawingImages}
             parts={parts}
@@ -2004,7 +2017,7 @@ function App() {
           />
         )}
 
-        {page === "journal" && (
+        {activePage === "journal" && (
           <OperationLogPage
             entries={operationLog}
             role={role}
@@ -2013,7 +2026,7 @@ function App() {
           />
         )}
 
-        {page === "admin" && role === "admin" && (
+        {activePage === "admin" && role === "admin" && (
           <AdminPage
             partNomenclature={partNomenclature}
             references={references}
@@ -2052,6 +2065,7 @@ function App() {
           isSaving={isSavingNomenclature}
           modal={nomenclatureModal}
           partNomenclature={partNomenclature}
+          parts={parts}
           references={references}
           replacementId={nomenclatureReplacementId}
           onChangeForm={updateNomenclatureForm}
@@ -2468,120 +2482,464 @@ function DashboardPage({
 }
 
 function PartsPage({
-  filteredParts,
+  drawingImages,
+  parts,
   role,
-  search,
-  onChangeSearch,
   onOpenCreatePart,
   onOpenPart
 }: {
-  filteredParts: Part[];
+  drawingImages: DrawingImagesMap;
+  parts: Part[];
   role: Role;
-  search: string;
-  onChangeSearch: (value: string) => void;
   onOpenCreatePart: () => void;
   onOpenPart: (part: Part) => void;
 }) {
+  const [partSearch, setPartSearch] = useState("");
+  const [partCategory, setPartCategory] = useState("all");
+  const [partMaterial, setPartMaterial] = useState("all");
+  const [partSupplier, setPartSupplier] = useState("all");
+  const [partStockStatus, setPartStockStatus] = useState("all");
+  const [partDrawingStatus, setPartDrawingStatus] = useState("all");
+  const [partSort, setPartSort] = useState("code");
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(parts.map((part) => part.category).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+  }, [parts]);
+
+  const materials = useMemo(() => {
+    return Array.from(new Set(parts.map((part) => part.material).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+  }, [parts]);
+
+  const suppliers = useMemo(() => {
+    return Array.from(new Set(parts.map((part) => part.supplier).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+  }, [parts]);
+
+  const criticalParts = useMemo(() => {
+    return parts.filter((part) => part.stock === 0);
+  }, [parts]);
+
+  const lowStockParts = useMemo(() => {
+    return parts.filter((part) => part.stock > 0 && part.stock <= part.minStock);
+  }, [parts]);
+
+  const partsWithDrawingFiles = useMemo(() => {
+    return parts.filter((part) => Boolean(drawingImages[String(part.id)]));
+  }, [drawingImages, parts]);
+
+  const partsWithoutDrawingFiles = parts.length - partsWithDrawingFiles.length;
+
+  const filteredParts = useMemo(() => {
+    const query = partSearch.trim().toLowerCase();
+
+    return parts
+      .filter((part) => {
+        const hasDrawingFile = Boolean(drawingImages[String(part.id)]);
+        const isCritical = part.stock === 0;
+        const isLowStock = part.stock > 0 && part.stock <= part.minStock;
+        const isNormal = part.stock > part.minStock;
+        const matchesSearch = query
+          ? `${part.code} ${part.name} ${part.category} ${part.material} ${part.supplier} ${part.drawing}`
+              .toLowerCase()
+              .includes(query)
+          : true;
+        const matchesCategory = partCategory === "all" || part.category === partCategory;
+        const matchesMaterial = partMaterial === "all" || part.material === partMaterial;
+        const matchesSupplier = partSupplier === "all" || part.supplier === partSupplier;
+        const matchesDrawing =
+          partDrawingStatus === "all" ||
+          (partDrawingStatus === "with" && hasDrawingFile) ||
+          (partDrawingStatus === "without" && !hasDrawingFile);
+        const matchesStockStatus =
+          partStockStatus === "all" ||
+          (partStockStatus === "critical" && isCritical) ||
+          (partStockStatus === "low" && isLowStock) ||
+          (partStockStatus === "normal" && isNormal);
+
+        return (
+          matchesSearch &&
+          matchesCategory &&
+          matchesMaterial &&
+          matchesSupplier &&
+          matchesDrawing &&
+          matchesStockStatus
+        );
+      })
+      .sort((left, right) => {
+        if (partSort === "name") {
+          return left.name.localeCompare(right.name, "ru");
+        }
+
+        if (partSort === "stock") {
+          return left.stock - right.stock;
+        }
+
+        if (partSort === "category") {
+          return (
+            left.category.localeCompare(right.category, "ru") ||
+            left.code.localeCompare(right.code, "ru")
+          );
+        }
+
+        if (partSort === "supplier") {
+          return (
+            left.supplier.localeCompare(right.supplier, "ru") ||
+            left.code.localeCompare(right.code, "ru")
+          );
+        }
+
+        return left.code.localeCompare(right.code, "ru");
+      });
+  }, [
+    drawingImages,
+    partCategory,
+    partDrawingStatus,
+    partMaterial,
+    partSearch,
+    partSort,
+    partStockStatus,
+    partSupplier,
+    parts
+  ]);
+
+  const totalStock = filteredParts.reduce((sum, part) => sum + part.stock, 0);
+  const totalMinStock = filteredParts.reduce((sum, part) => sum + part.minStock, 0);
+  const canExport = role === "admin" && filteredParts.length > 0;
+
+  function getPartStatus(part: Part): {
+    className: string;
+    title: string;
+  } {
+    if (part.stock === 0) {
+      return {
+        className: "warehouse-status warehouse-status--danger",
+        title: "Дефицит"
+      };
+    }
+
+    if (part.stock <= part.minStock) {
+      return {
+        className: "warehouse-status warehouse-status--warning",
+        title: "Низкий остаток"
+      };
+    }
+
+    return {
+      className: "warehouse-status warehouse-status--success",
+      title: "Норма"
+    };
+  }
+
+  function exportFilteredPartsCsv(): void {
+    if (!canExport) {
+      return;
+    }
+
+    const header = [
+      "code",
+      "name",
+      "category",
+      "material",
+      "supplier",
+      "unit",
+      "weight",
+      "stock",
+      "minStock",
+      "drawing",
+      "drawingFile"
+    ];
+    const lines = filteredParts.map((part) =>
+      [
+        part.code,
+        part.name,
+        part.category,
+        part.material,
+        part.supplier,
+        part.unit,
+        part.weight,
+        part.stock,
+        part.minStock,
+        part.drawing,
+        drawingImages[String(part.id)] ? "uploaded" : "missing"
+      ]
+        .map(escapeCsvValue)
+        .join(";")
+    );
+    const csv = [header.join(";"), ...lines].join("\n");
+    const date = new Date().toISOString().slice(0, 10);
+
+    downloadCsv(`mdm-parts-registry-${date}.csv`, csv);
+  }
+
   return (
-    <section className="content-card">
-      <div className="content-card__header">
-        <div>
-          <p>Мастер-данные</p>
-          <h2>Справочник деталей и ПКИ</h2>
-          <span>
-            Код, наименование, категория, материал и чертеж берутся только из
-            утвержденной номенклатуры.
-          </span>
+    <section className="parts-production-page">
+      <section className="content-card parts-summary-card">
+        <div className="content-card__header warehouse-summary-card__header">
+          <div>
+            <p>Детали</p>
+            <h2>Реестр карточек деталей</h2>
+          </div>
+
+          <div className="content-card__actions">
+            {role === "admin" && (
+              <>
+                <button
+                  className="secondary-button"
+                  disabled={!canExport}
+                  type="button"
+                  onClick={exportFilteredPartsCsv}
+                >
+                  Выгрузить CSV
+                </button>
+
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={onOpenCreatePart}
+                >
+                  Добавить деталь
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        {role === "admin" && (
-          <button
-            className="primary-button"
-            type="button"
-            onClick={onOpenCreatePart}
-          >
-            Добавить деталь
-          </button>
+        <div className="warehouse-kpi-grid parts-kpi-grid">
+          <MetricCard
+            title="Деталей"
+            value={parts.length.toLocaleString("ru-RU")}
+            text={`Отфильтровано: ${filteredParts.length.toLocaleString("ru-RU")}`}
+          />
+          <MetricCard
+            danger={criticalParts.length > 0}
+            title="Критический остаток"
+            value={criticalParts.length.toLocaleString("ru-RU")}
+            text="Остаток равен нулю"
+          />
+          <MetricCard
+            danger={lowStockParts.length > 0}
+            title="Низкий остаток"
+            value={lowStockParts.length.toLocaleString("ru-RU")}
+            text="Остаток выше нуля, но не выше минимума"
+          />
+          <MetricCard
+            danger={partsWithoutDrawingFiles > 0}
+            title="Чертежи"
+            value={`${partsWithDrawingFiles.length.toLocaleString("ru-RU")} / ${partsWithoutDrawingFiles.toLocaleString("ru-RU")}`}
+            text="С файлом / без файла"
+          />
+        </div>
+      </section>
+
+      <section className="content-card parts-control-card">
+        <div className="content-card__header">
+          <div>
+            <p>Контроль</p>
+            <h2>Позиции без запаса</h2>
+          </div>
+        </div>
+
+        {criticalParts.length === 0 && lowStockParts.length === 0 ? (
+          <div className="warehouse-empty-state">Критичных позиций нет.</div>
+        ) : (
+          <div className="warehouse-shortage-list">
+            {[...criticalParts, ...lowStockParts].slice(0, 8).map((part) => {
+              const status = getPartStatus(part);
+
+              return (
+                <button
+                  className="warehouse-shortage-item"
+                  key={part.id}
+                  type="button"
+                  onClick={() => onOpenPart(part)}
+                >
+                  <div>
+                    <b>{part.code}</b>
+                    <span>{part.name}</span>
+                  </div>
+                  <strong className={status.className}>{status.title}</strong>
+                  <small>
+                    {part.stock} / {part.minStock} {part.unit}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </section>
 
-      <input
-        className="search-field"
-        value={search}
-        onChange={(event) => onChangeSearch(event.target.value)}
-        placeholder="Поиск по названию, ГОСТ, категории, поставщику или номеру чертежа"
-      />
+      <section className="content-card parts-table-card">
+        <div className="content-card__header warehouse-table-card__header">
+          <div>
+            <p>Реестр</p>
+            <h2>Карточки деталей</h2>
+          </div>
+        </div>
 
-      <div className="parts-grid">
-        {filteredParts.map((part) => (
-          <PartCard key={part.id} part={part} onOpenPart={onOpenPart} />
-        ))}
-      </div>
+        <div className="warehouse-filters parts-filters">
+          <input
+            className="search-field warehouse-filters__search"
+            value={partSearch}
+            onChange={(event) => setPartSearch(event.target.value)}
+            placeholder="Поиск по коду, названию, материалу, поставщику или чертежу"
+          />
+
+          <select
+            className="entity-form__control"
+            value={partStockStatus}
+            onChange={(event) => setPartStockStatus(event.target.value)}
+          >
+            <option value="all">Все остатки</option>
+            <option value="critical">Критический остаток</option>
+            <option value="low">Низкий остаток</option>
+            <option value="normal">Норма</option>
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={partCategory}
+            onChange={(event) => setPartCategory(event.target.value)}
+          >
+            <option value="all">Все категории</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={partMaterial}
+            onChange={(event) => setPartMaterial(event.target.value)}
+          >
+            <option value="all">Все материалы</option>
+            {materials.map((material) => (
+              <option key={material} value={material}>
+                {material}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={partSupplier}
+            onChange={(event) => setPartSupplier(event.target.value)}
+          >
+            <option value="all">Все поставщики</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier} value={supplier}>
+                {supplier}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={partDrawingStatus}
+            onChange={(event) => setPartDrawingStatus(event.target.value)}
+          >
+            <option value="all">Все чертежи</option>
+            <option value="with">Файл загружен</option>
+            <option value="without">Файла нет</option>
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={partSort}
+            onChange={(event) => setPartSort(event.target.value)}
+          >
+            <option value="code">По коду</option>
+            <option value="name">По наименованию</option>
+            <option value="stock">По остатку</option>
+            <option value="category">По категории</option>
+            <option value="supplier">По поставщику</option>
+          </select>
+        </div>
+
+        <div className="parts-table-meta">
+          <span>Показано: {filteredParts.length.toLocaleString("ru-RU")}</span>
+          <span>Остаток: {totalStock.toLocaleString("ru-RU")}</span>
+          <span>Минимум: {totalMinStock.toLocaleString("ru-RU")}</span>
+        </div>
+
+        {filteredParts.length === 0 ? (
+          <div className="warehouse-empty-state">По текущим фильтрам деталей нет.</div>
+        ) : (
+          <div className="warehouse-table-wrap parts-table-wrap">
+            <table className="warehouse-table parts-table">
+              <thead>
+                <tr>
+                  <th>Код</th>
+                  <th>Наименование</th>
+                  <th>Категория</th>
+                  <th>Материал</th>
+                  <th>Поставщик</th>
+                  <th>Остаток</th>
+                  <th>Чертеж</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredParts.map((part) => {
+                  const status = getPartStatus(part);
+                  const percent = part.minStock > 0
+                    ? Math.min(100, Math.round((part.stock / part.minStock) * 100))
+                    : 100;
+                  const hasDrawingFile = Boolean(drawingImages[String(part.id)]);
+
+                  return (
+                    <tr key={part.id}>
+                      <td>
+                        <b>{part.code}</b>
+                        <span>ID {part.id}</span>
+                      </td>
+                      <td>
+                        <b>{part.name}</b>
+                        <span>{part.unit}, {part.weight} кг</span>
+                      </td>
+                      <td>{part.category}</td>
+                      <td>{part.material}</td>
+                      <td>{part.supplier}</td>
+                      <td>
+                        <b>{part.stock} / {part.minStock} {part.unit}</b>
+                        <div className="progress warehouse-table__progress">
+                          <div
+                            className={
+                              status.title === "Норма"
+                                ? "progress__bar"
+                                : "progress__bar progress__bar--danger"
+                            }
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <span className={status.className}>{status.title}</span>
+                      </td>
+                      <td>
+                        <b>{part.drawing}</b>
+                        <span>{hasDrawingFile ? "Файл загружен" : "Файла нет"}</span>
+                      </td>
+                      <td>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={() => onOpenPart(part)}
+                        >
+                          Карточка
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </section>
-  );
-}
-
-function PartCard({
-  part,
-  onOpenPart
-}: {
-  part: Part;
-  onOpenPart: (part: Part) => void;
-}) {
-  const danger = part.stock <= part.minStock;
-
-  return (
-    <button
-      className="part-card part-card--button"
-      type="button"
-      onClick={() => onOpenPart(part)}
-    >
-      <div className="part-card__header">
-        <div>
-          <span>{part.category}</span>
-          <h3>{part.name}</h3>
-        </div>
-
-        <b
-          className={
-            danger
-              ? "part-card__badge part-card__badge--danger"
-              : "part-card__badge"
-          }
-        >
-          {danger ? "Мало" : "В норме"}
-        </b>
-      </div>
-
-      <div className="part-card__grid">
-        <div>
-          <span>Код</span>
-          <b>{part.code}</b>
-        </div>
-
-        <div>
-          <span>Материал</span>
-          <b>{part.material}</b>
-        </div>
-
-        <div>
-          <span>Поставщик</span>
-          <b>{part.supplier}</b>
-        </div>
-
-        <div>
-          <span>Остаток</span>
-          <b>
-            {part.stock} {part.unit}
-          </b>
-        </div>
-      </div>
-
-      <div className="drawing-line">
-        <span>Чертеж</span>
-        <b>{part.drawing}</b>
-      </div>
-    </button>
   );
 }
 
@@ -4401,6 +4759,7 @@ function NomenclatureModal({
   form,
   references,
   partNomenclature,
+  parts,
   replacementId,
   error,
   isSaving,
@@ -4413,6 +4772,7 @@ function NomenclatureModal({
   form: NomenclatureForm;
   references: ReferencesMap;
   partNomenclature: PartNomenclature[];
+  parts: Part[];
   replacementId: string;
   error: string;
   isSaving: boolean;
@@ -4430,9 +4790,18 @@ function NomenclatureModal({
       ? "Редактирование номенклатуры"
       : "Добавление номенклатуры";
 
+  const deletedPart = modal.item
+    ? parts.find((part) => part.nomenclatureId === modal.item?.id)
+    : undefined;
+  const selectedReplacementId = Number(replacementId);
+  const replacementPart = Number.isFinite(selectedReplacementId)
+    ? parts.find((part) => part.nomenclatureId === selectedReplacementId)
+    : undefined;
   const replacementOptions = partNomenclature.filter(
     (item) => item.id !== modal.item?.id
   );
+  const isUsedInPart = Boolean(deletedPart);
+  const isDeleteDisabled = isSaving || (isDelete && isUsedInPart && !replacementId);
 
   return (
     <ModalBackdrop onClose={onClose}>
@@ -4540,33 +4909,107 @@ function NomenclatureModal({
 
           {isDelete && (
             <>
-              <div className="delete-warning">
-                <b>Вы удаляете: {modal.item?.name}</b>
-                <span>
-                  Если эта номенклатура используется в карточках деталей,
-                  выберите замену. Связанные карточки будут перенесены на новую
-                  номенклатуру.
-                </span>
+              <div className="delete-warning delete-warning--merge">
+                <b>
+                  Вы удаляете: {modal.item?.code} — {modal.item?.name}
+                </b>
+
+                {isUsedInPart ? (
+                  <span>
+                    Эта номенклатура уже связана с карточкой детали. Такую запись нельзя просто стереть: нужно
+                    объединить ее с правильной номенклатурой, чтобы не потерять
+                    складской остаток и историю закупок.
+                  </span>
+                ) : (
+                  <span>
+                    Эта номенклатура не используется в карточках деталей. Ее
+                    можно удалить без замены.
+                  </span>
+                )}
               </div>
 
+              {deletedPart && (
+                <div className="merge-summary">
+                  <div>
+                    <span>Текущая карточка</span>
+                    <b>{deletedPart.code} — {deletedPart.name}</b>
+                  </div>
+                  <div>
+                    <span>Остаток</span>
+                    <b>{deletedPart.stock.toLocaleString("ru-RU")} {deletedPart.unit}</b>
+                  </div>
+                  <div>
+                    <span>Минимум</span>
+                    <b>{deletedPart.minStock.toLocaleString("ru-RU")} {deletedPart.unit}</b>
+                  </div>
+                  <div>
+                    <span>Поставщик</span>
+                    <b>{deletedPart.supplier}</b>
+                  </div>
+                </div>
+              )}
+
               <label className="entity-form__field">
-                <span>Заменить на</span>
+                <span>
+                  {isUsedInPart
+                    ? "Объединить с номенклатурой"
+                    : "Заменить на"}
+                </span>
                 <select
+                  required={isUsedInPart}
                   className="entity-form__control"
                   value={replacementId}
                   onChange={(event) => onChangeReplacementId(event.target.value)}
                 >
                   <option value="">
-                    Не заменять, удалить только если не используется
+                    {isUsedInPart
+                      ? "Выберите основную номенклатуру"
+                      : "Не заменять, удалить без переноса"}
                   </option>
 
-                  {replacementOptions.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code} — {item.name}
-                    </option>
-                  ))}
+                  {replacementOptions.map((item) => {
+                    const optionPart = parts.find(
+                      (part) => part.nomenclatureId === item.id
+                    );
+
+                    return (
+                      <option key={item.id} value={item.id}>
+                        {item.code} — {item.name}
+                        {optionPart ? " · есть карточка склада" : " · карточки нет"}
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
+
+              {isUsedInPart && replacementId && (
+                <div className="merge-plan">
+                  <b>Что произойдет после подтверждения</b>
+                  <span>
+                    Закупки удаляемой карточки будут перепривязаны к выбранной
+                    номенклатуре. Остаток удаляемой карточки будет добавлен к
+                    остатку основной карточки. Минимальный остаток будет взят по
+                    большему значению. После переноса дубль будет удален.
+                  </span>
+
+                  {replacementPart && deletedPart && (
+                    <div className="merge-plan__grid">
+                      <div>
+                        <span>Основная карточка сейчас</span>
+                        <b>
+                          {replacementPart.stock.toLocaleString("ru-RU")} {replacementPart.unit}
+                        </b>
+                      </div>
+                      <div>
+                        <span>Будет после объединения</span>
+                        <b>
+                          {(replacementPart.stock + deletedPart.stock).toLocaleString("ru-RU")} {replacementPart.unit}
+                        </b>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -4576,15 +5019,17 @@ function NomenclatureModal({
                 isDelete ? "danger-button danger-button--large" : "primary-button"
               }
               type="submit"
-              disabled={isSaving}
+              disabled={isDeleteDisabled}
             >
               {isSaving
                 ? "Сохранение..."
-                : isDelete
-                  ? "Удалить"
-                  : isEdit
-                    ? "Сохранить изменения"
-                    : "Добавить"}
+                : isDelete && isUsedInPart
+                  ? "Объединить и удалить"
+                  : isDelete
+                    ? "Удалить"
+                    : isEdit
+                      ? "Сохранить изменения"
+                      : "Добавить"}
             </button>
 
             <button

@@ -21,6 +21,16 @@ function sanitizeOriginalName(value: string): string {
   return safeName.slice(0, 255) || "drawing";
 }
 
+function isPathInsideDirectory(filePath: string, directoryPath: string): boolean {
+  const relativePath = path.relative(directoryPath, filePath);
+
+  return (
+    Boolean(relativePath) &&
+    !relativePath.startsWith("..") &&
+    !path.isAbsolute(relativePath)
+  );
+}
+
 export class LocalDrawingFileStorage implements DrawingFileStorage {
   private readonly uploadDirectory: string;
 
@@ -57,7 +67,7 @@ export class LocalDrawingFileStorage implements DrawingFileStorage {
     const resolvedPath = path.resolve(storagePath);
     const resolvedUploadDirectory = path.resolve(this.uploadDirectory);
 
-    if (!resolvedPath.startsWith(resolvedUploadDirectory)) {
+    if (!isPathInsideDirectory(resolvedPath, resolvedUploadDirectory)) {
       return;
     }
 
