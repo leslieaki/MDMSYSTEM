@@ -162,8 +162,7 @@ const menu: MenuItem[] = [
   {
     id: "purchases",
     title: "Закупки",
-    subtitle: "Регламент учета",
-    adminOnly: true
+    subtitle: "Журнал снабжения"
   },
   { id: "warehouse", title: "Склад", subtitle: "Остатки и дефицит" },
   { id: "reports", title: "Отчеты", subtitle: "Аналитика склада" },
@@ -1851,7 +1850,7 @@ function App() {
       return;
     }
 
-    if (role === "worker" && (page === "admin" || page === "purchases")) {
+    if (role === "worker" && page === "admin") {
       setPage("dashboard");
     }
   }, [authSession, role, page]);
@@ -1925,14 +1924,22 @@ function App() {
           />
         )}
 
-        {page === "purchases" && role === "admin" && (
+        {page === "purchases" && (
           <PurchasesPage
             form={purchaseForm}
-            isDisabled={Boolean(loadError) || parts.length === 0}
+            isDisabled={Boolean(loadError) || parts.length === 0 || role !== "admin"}
             parts={parts}
             purchases={purchases}
+            role={role}
             selectedPart={selectedPurchasePart}
             onChangeForm={updatePurchaseForm}
+            onExportPurchases={(count) => {
+              addOperationLog(
+                "Выгрузка закупок",
+                "Закупки",
+                `Выгружен журнал закупок, строк: ${count}`
+              );
+            }}
             onOpenPurchase={openPurchaseInfo}
             onSubmit={createPurchase}
           />
@@ -1940,9 +1947,15 @@ function App() {
 
         {page === "warehouse" && (
           <WarehousePage
-            lowStockCount={lowStockParts.length}
-            parts={parts}
-            onOpenPart={openPartByRole}
+            items={stockReport}
+            role={role}
+            onOpenPart={(item) => {
+              const part = parts.find((currentPart) => currentPart.id === item.partId);
+
+              if (part) {
+                openPartByRole(part);
+              }
+            }}
           />
         )}
 
@@ -2577,8 +2590,10 @@ function PurchasesPage({
   isDisabled,
   parts,
   purchases,
+  role,
   selectedPart,
   onChangeForm,
+  onExportPurchases,
   onOpenPurchase,
   onSubmit
 }: {
@@ -2586,52 +2601,253 @@ function PurchasesPage({
   isDisabled: boolean;
   parts: Part[];
   purchases: Purchase[];
+  role: Role;
   selectedPart: Part | undefined;
   onChangeForm: (field: keyof PurchaseForm, value: string) => void;
+  onExportPurchases: (count: number) => void;
   onOpenPurchase: (purchase: Purchase) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const [purchaseSearch, setPurchaseSearch] = useState("");
+  const [purchaseSupplier, setPurchaseSupplier] = useState("all");
+  const [purchasePeriod, setPurchasePeriod] = useState("all");
+  const [purchaseSort, setPurchaseSort] = useState("date-desc");
+
+  const partById = useMemo(() => {
+    return new Map(parts.map((part) => [part.id, part]));
+  }, [parts]);
+
+  const suppliers = useMemo(() => {
+    const values = new Set<string>();
+
+    purchases.forEach((purchase) => {
+      const part = partById.get(purchase.partId);
+      const supplier = part?.supplier || purchase.supplier;
+
+      if (supplier) {
+        values.add(supplier);
+      }
+    });
+
+    return Array.from(values).sort((left, right) => left.localeCompare(right, "ru"));
+  }, [partById, purchases]);
+
+  const filteredPurchases = useMemo(() => {
+    const query = purchaseSearch.trim().toLowerCase();
+    const now = new Date();
+
+    function matchesPeriod(dateValue: string): boolean {
+      if (purchasePeriod === "all") {
+        return true;
+      }
+
+      const purchaseDate = new Date(dateValue);
+
+      if (Number.isNaN(purchaseDate.getTime())) {
+        return false;
+      }
+
+      if (purchasePeriod === "7") {
+        const limit = new Date(now);
+        limit.setDate(limit.getDate() - 7);
+        return purchaseDate >= limit;
+      }
+
+      if (purchasePeriod === "30") {
+        const limit = new Date(now);
+        limit.setDate(limit.getDate() - 30);
+        return purchaseDate >= limit;
+      }
+
+      if (purchasePeriod === "month") {
+        return (
+          purchaseDate.getFullYear() === now.getFullYear() &&
+          purchaseDate.getMonth() === now.getMonth()
+        );
+      }
+
+      return true;
+    }
+
+    const result = purchases.filter((purchase) => {
+      const part = partById.get(purchase.partId);
+      const supplier = part?.supplier || purchase.supplier;
+      const searchSource = [
+        purchase.rawName,
+        part?.code || "",
+        part?.name || "",
+        part?.category || "",
+        supplier,
+        purchase.employee,
+        purchase.date
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = query ? searchSource.includes(query) : true;
+      const matchesSupplier =
+        purchaseSupplier === "all" || supplier === purchaseSupplier;
+
+      return matchesSearch && matchesSupplier && matchesPeriod(purchase.date);
+    });
+
+    return result.sort((left, right) => {
+      const leftPart = partById.get(left.partId);
+      const rightPart = partById.get(right.partId);
+
+      if (purchaseSort === "date-asc") {
+        return new Date(left.date).getTime() - new Date(right.date).getTime();
+      }
+
+      if (purchaseSort === "sum-desc") {
+        return right.price - left.price;
+      }
+
+      if (purchaseSort === "quantity-desc") {
+        return right.quantity - left.quantity;
+      }
+
+      if (purchaseSort === "supplier") {
+        return (leftPart?.supplier || left.supplier).localeCompare(
+          rightPart?.supplier || right.supplier,
+          "ru"
+        );
+      }
+
+      if (purchaseSort === "part") {
+        return (leftPart?.name || left.rawName).localeCompare(
+          rightPart?.name || right.rawName,
+          "ru"
+        );
+      }
+
+      return new Date(right.date).getTime() - new Date(left.date).getTime();
+    });
+  }, [partById, purchasePeriod, purchaseSearch, purchaseSort, purchaseSupplier, purchases]);
+
+  const totalQuantity = filteredPurchases.reduce(
+    (sum, purchase) => sum + purchase.quantity,
+    0
+  );
+  const totalAmount = filteredPurchases.reduce(
+    (sum, purchase) => sum + purchase.price,
+    0
+  );
+  const averageAmount =
+    filteredPurchases.length > 0 ? totalAmount / filteredPurchases.length : 0;
+  const uniqueSuppliersCount = new Set(
+    filteredPurchases.map((purchase) => {
+      const part = partById.get(purchase.partId);
+      return part?.supplier || purchase.supplier;
+    })
+  ).size;
+
+  function exportPurchasesCsv() {
+    const header = [
+      "date",
+      "partCode",
+      "partName",
+      "category",
+      "supplier",
+      "quantity",
+      "price",
+      "employee"
+    ];
+    const rows = filteredPurchases.map((purchase) => {
+      const part = partById.get(purchase.partId);
+
+      return [
+        purchase.date,
+        part?.code || "",
+        part?.name || purchase.rawName,
+        part?.category || "",
+        part?.supplier || purchase.supplier,
+        purchase.quantity,
+        purchase.price,
+        purchase.employee
+      ]
+        .map(escapeCsvValue)
+        .join(";");
+    });
+    const csv = [header.join(";"), ...rows].join("\n");
+    const date = new Date().toISOString().slice(0, 10);
+
+    downloadCsv(`mdm-purchases-${date}.csv`, csv);
+    onExportPurchases(filteredPurchases.length);
+  }
+
   return (
-    <section className="purchase-layout">
-      <section className="content-card">
-        <div className="content-card__header">
+    <section className="purchases-page">
+      <section className="content-card purchases-summary-card">
+        <div className="content-card__header purchases-summary-card__header">
           <div>
-            <p>Регламент закупок</p>
-            <h2>Новая закупка</h2>
-            <span>Вручную вводятся только количество и цена.</span>
+            <p>Закупочные операции</p>
+            <h2>Журнал снабжения</h2>
           </div>
+
+          {role === "admin" && (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={exportPurchasesCsv}
+              disabled={filteredPurchases.length === 0}
+            >
+              Выгрузить CSV
+            </button>
+          )}
         </div>
 
-        <form className="entity-form" onSubmit={onSubmit}>
-          <label className="entity-form__field">
-            <span>Деталь из справочника</span>
-            <select
-              required
-              className="entity-form__control"
-              disabled={isDisabled}
-              value={form.partId}
-              onChange={(event) => onChangeForm("partId", event.target.value)}
-            >
-              {parts.map((part) => (
-                <option key={part.id} value={part.id}>
-                  {part.code} — {part.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="warehouse-kpi-grid purchases-kpi-grid">
+          <MetricCard
+            title="Операций"
+            value={String(filteredPurchases.length)}
+            text={`Всего в базе: ${purchases.length}`}
+          />
+          <MetricCard
+            title="Общая сумма"
+            value={formatMoney(totalAmount)}
+            text="По текущей выборке"
+          />
+          <MetricCard
+            title="Количество"
+            value={String(totalQuantity)}
+            text="Суммарно по позициям"
+          />
+          <MetricCard
+            title="Средняя сумма"
+            value={formatMoney(averageAmount)}
+            text={`Поставщиков: ${uniqueSuppliersCount}`}
+          />
+        </div>
+      </section>
 
-          {selectedPart && (
-            <div className="form-hint">
-              <span>
-                Остаток: {selectedPart.stock} {selectedPart.unit}
-              </span>
-              <span>Поставщик: {selectedPart.supplier}</span>
-              <span>Материал: {selectedPart.material}</span>
-              <span>Чертеж: {selectedPart.drawing}</span>
+      {role === "admin" && (
+        <section className="content-card purchases-create-card">
+          <div className="content-card__header">
+            <div>
+              <p>Новая операция</p>
+              <h2>Провести закупку</h2>
             </div>
-          )}
+          </div>
 
-          <div className="entity-form__row">
+          <form className="entity-form purchases-form" onSubmit={onSubmit}>
+            <label className="entity-form__field purchases-form__part">
+              <span>Деталь из утвержденного справочника</span>
+              <select
+                required
+                className="entity-form__control"
+                disabled={isDisabled}
+                value={form.partId}
+                onChange={(event) => onChangeForm("partId", event.target.value)}
+              >
+                {parts.map((part) => (
+                  <option key={part.id} value={part.id}>
+                    {part.code} — {part.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <label className="entity-form__field">
               <span>Количество</span>
               <input
@@ -2663,58 +2879,155 @@ function PurchasesPage({
                 placeholder="1200"
               />
             </label>
-          </div>
 
-          <label className="entity-form__field">
-            <span>Ответственный</span>
-            <input
-              disabled
-              className="entity-form__control"
-              value={form.employee}
-              onChange={(event) => onChangeForm("employee", event.target.value)}
-            />
-          </label>
+            <label className="entity-form__field">
+              <span>Ответственный</span>
+              <input
+                disabled
+                className="entity-form__control"
+                value={form.employee}
+                onChange={(event) => onChangeForm("employee", event.target.value)}
+              />
+            </label>
 
-          <button className="primary-button" type="submit" disabled={isDisabled}>
-            Провести закупку
-          </button>
-        </form>
-      </section>
+            {selectedPart && (
+              <div className="form-hint purchases-form__hint">
+                <span>
+                  Остаток: {selectedPart.stock} {selectedPart.unit}
+                </span>
+                <span>Поставщик: {selectedPart.supplier}</span>
+                <span>Материал: {selectedPart.material}</span>
+                <span>Чертеж: {selectedPart.drawing}</span>
+              </div>
+            )}
 
-      <section className="content-card">
-        <div className="content-card__header">
+            <button
+              className="primary-button purchases-form__submit"
+              type="submit"
+              disabled={isDisabled}
+            >
+              Провести закупку
+            </button>
+          </form>
+        </section>
+      )}
+
+      <section className="content-card purchases-table-card">
+        <div className="content-card__header purchases-table-card__header">
           <div>
-            <p>История</p>
-            <h2>Последние закупки</h2>
+            <p>Реестр</p>
+            <h2>История закупок</h2>
           </div>
         </div>
 
-        <div className="data-table">
-          <div className="data-table__row data-table__row--head">
-            <span>Операция</span>
-            <span>Деталь</span>
-            <span>Кол-во</span>
-            <span>Цена</span>
-          </div>
+        <div className="warehouse-filters purchases-filters">
+          <input
+            className="search-field warehouse-filters__search"
+            value={purchaseSearch}
+            onChange={(event) => setPurchaseSearch(event.target.value)}
+            placeholder="Поиск по коду, детали, поставщику, сотруднику"
+          />
 
-          {purchases.map((purchase) => {
-            const part = parts.find((item) => item.id === purchase.partId);
+          <select
+            className="entity-form__control"
+            value={purchaseSupplier}
+            onChange={(event) => setPurchaseSupplier(event.target.value)}
+          >
+            <option value="all">Все поставщики</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier} value={supplier}>
+                {supplier}
+              </option>
+            ))}
+          </select>
 
-            return (
-              <button
-                className="data-table__row data-table__row--button"
-                key={purchase.id}
-                type="button"
-                onClick={() => onOpenPurchase(purchase)}
-              >
-                <span>{purchase.rawName}</span>
-                <span>{part?.name || "Не найдена"}</span>
-                <span>{purchase.quantity}</span>
-                <span>{formatMoney(purchase.price)}</span>
-              </button>
-            );
-          })}
+          <select
+            className="entity-form__control"
+            value={purchasePeriod}
+            onChange={(event) => setPurchasePeriod(event.target.value)}
+          >
+            <option value="all">За все время</option>
+            <option value="7">Последние 7 дней</option>
+            <option value="30">Последние 30 дней</option>
+            <option value="month">Текущий месяц</option>
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={purchaseSort}
+            onChange={(event) => setPurchaseSort(event.target.value)}
+          >
+            <option value="date-desc">Сначала новые</option>
+            <option value="date-asc">Сначала старые</option>
+            <option value="sum-desc">Сначала дорогие</option>
+            <option value="quantity-desc">Больше количество</option>
+            <option value="supplier">По поставщику</option>
+            <option value="part">По детали</option>
+          </select>
         </div>
+
+        {filteredPurchases.length === 0 ? (
+          <div className="warehouse-empty-state">
+            По заданным фильтрам закупки не найдены
+          </div>
+        ) : (
+          <div className="purchases-table-wrap">
+            <table className="purchases-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Деталь</th>
+                  <th>Поставщик</th>
+                  <th>Количество</th>
+                  <th>Сумма</th>
+                  <th>Ответственный</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredPurchases.map((purchase) => {
+                  const part = partById.get(purchase.partId);
+
+                  return (
+                    <tr key={purchase.id}>
+                      <td>
+                        <b>{purchase.date}</b>
+                      </td>
+                      <td>
+                        <b>{part?.code || "Код не найден"}</b>
+                        <span>{part?.name || purchase.rawName}</span>
+                      </td>
+                      <td>
+                        <b>{part?.supplier || purchase.supplier}</b>
+                        <span>{part?.category || "Категория не указана"}</span>
+                      </td>
+                      <td>
+                        <b>{purchase.quantity}</b>
+                        <span>{part?.unit || "ед."}</span>
+                      </td>
+                      <td>
+                        <b>{formatMoney(purchase.price)}</b>
+                      </td>
+                      <td>
+                        <b>{purchase.employee}</b>
+                      </td>
+                      <td>
+                        <button
+                          className="table-action-button"
+                          type="button"
+                          onClick={() => onOpenPurchase(purchase)}
+                        >
+                          Открыть
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </section>
   );
@@ -3005,67 +3318,359 @@ function ReportsPage({
 }
 
 function WarehousePage({
-  parts,
-  lowStockCount,
+  items,
+  role,
   onOpenPart
 }: {
-  parts: Part[];
-  lowStockCount: number;
-  onOpenPart: (part: Part) => void;
+  items: StockReportItem[];
+  role: Role;
+  onOpenPart: (item: StockReportItem) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [category, setCategory] = useState("all");
+  const [supplier, setSupplier] = useState("all");
+  const [sort, setSort] = useState("status");
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(items.map((item) => item.category).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+  }, [items]);
+
+  const suppliers = useMemo(() => {
+    return Array.from(new Set(items.map((item) => item.supplier).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right, "ru"));
+  }, [items]);
+
+  const deficitItems = useMemo(() => {
+    return items
+      .filter((item) => item.stockStatus === "Дефицит")
+      .sort((left, right) => left.stock - right.stock || left.name.localeCompare(right.name, "ru"));
+  }, [items]);
+
+  const lowStockItems = useMemo(() => {
+    return items.filter((item) => item.stockStatus === "Низкий остаток");
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const statusPriority: Record<StockReportItem["stockStatus"], number> = {
+      "Дефицит": 0,
+      "Низкий остаток": 1,
+      "Норма": 2
+    };
+
+    return items
+      .filter((item) => {
+        const matchesSearch = query
+          ? `${item.code} ${item.name} ${item.category} ${item.material} ${item.supplier} ${item.drawing}`
+              .toLowerCase()
+              .includes(query)
+          : true;
+        const matchesStatus = status === "all" || item.stockStatus === status;
+        const matchesCategory = category === "all" || item.category === category;
+        const matchesSupplier = supplier === "all" || item.supplier === supplier;
+
+        return matchesSearch && matchesStatus && matchesCategory && matchesSupplier;
+      })
+      .sort((left, right) => {
+        if (sort === "code") {
+          return left.code.localeCompare(right.code, "ru");
+        }
+
+        if (sort === "name") {
+          return left.name.localeCompare(right.name, "ru");
+        }
+
+        if (sort === "stock") {
+          return left.stock - right.stock;
+        }
+
+        if (sort === "minStock") {
+          return right.minStock - left.minStock;
+        }
+
+        return (
+          statusPriority[left.stockStatus] - statusPriority[right.stockStatus] ||
+          left.stock - right.stock ||
+          left.name.localeCompare(right.name, "ru")
+        );
+      });
+  }, [items, search, status, category, supplier, sort]);
+
+  const totalStock = filteredItems.reduce((sum, item) => sum + item.stock, 0);
+  const totalMinStock = filteredItems.reduce((sum, item) => sum + item.minStock, 0);
+  const canExport = role === "admin" && filteredItems.length > 0;
+
+  function exportWarehouseCsv(): void {
+    if (!canExport) {
+      return;
+    }
+
+    const header = [
+      "code",
+      "name",
+      "category",
+      "material",
+      "unit",
+      "stock",
+      "minStock",
+      "stockStatus",
+      "supplier",
+      "drawing"
+    ];
+    const lines = filteredItems.map((item) =>
+      [
+        item.code,
+        item.name,
+        item.category,
+        item.material,
+        item.unit,
+        item.stock,
+        item.minStock,
+        item.stockStatus,
+        item.supplier,
+        item.drawing
+      ]
+        .map(escapeCsvValue)
+        .join(";")
+    );
+    const csv = [header.join(";"), ...lines].join("\n");
+    const date = new Date().toISOString().slice(0, 10);
+
+    downloadCsv(`mdm-warehouse-stock-${date}.csv`, csv);
+  }
+
   return (
-    <section className="content-card">
-      <div className="content-card__header">
-        <div>
-          <p>Складской учет</p>
-          <h2>Остатки деталей</h2>
+    <section className="warehouse-page">
+      <section className="content-card warehouse-summary-card">
+        <div className="content-card__header warehouse-summary-card__header">
+          <div>
+            <p>Склад</p>
+            <h2>Контроль остатков</h2>
+          </div>
+
+          {role === "admin" && (
+            <button
+              className="primary-button"
+              disabled={!canExport}
+              type="button"
+              onClick={exportWarehouseCsv}
+            >
+              Выгрузить CSV
+            </button>
+          )}
         </div>
 
-        <span className="pill">Низкий остаток: {lowStockCount}</span>
-      </div>
+        <div className="warehouse-kpi-grid">
+          <MetricCard
+            title="Позиций"
+            value={items.length.toLocaleString("ru-RU")}
+            text={`Отфильтровано: ${filteredItems.length.toLocaleString("ru-RU")}`}
+          />
+          <MetricCard
+            danger={deficitItems.length > 0}
+            title="Дефицит"
+            value={deficitItems.length.toLocaleString("ru-RU")}
+            text="Остаток равен нулю"
+          />
+          <MetricCard
+            danger={lowStockItems.length > 0}
+            title="Низкий остаток"
+            value={lowStockItems.length.toLocaleString("ru-RU")}
+            text="Остаток не выше минимума"
+          />
+          <MetricCard
+            title="Остаток / минимум"
+            value={`${totalStock.toLocaleString("ru-RU")} / ${totalMinStock.toLocaleString("ru-RU")}`}
+            text="По текущей выборке"
+          />
+        </div>
+      </section>
 
-      <div className="warehouse-list">
-        {parts.map((part) => {
-          const percent =
-            part.minStock > 0
-              ? Math.min(100, Math.round((part.stock / part.minStock) * 100))
-              : 100;
+      <section className="content-card warehouse-deficit-card">
+        <div className="content-card__header">
+          <div>
+            <p>Приоритет</p>
+            <h2>Позиции для пополнения</h2>
+          </div>
+        </div>
 
-          const danger = part.stock <= part.minStock;
-
-          return (
-            <button
-              className="warehouse-item warehouse-item--button"
-              key={part.id}
-              type="button"
-              onClick={() => onOpenPart(part)}
-            >
-              <div>
-                <b>{part.name}</b>
-                <span>{part.code}</span>
-              </div>
-
-              <div>
-                <b>
-                  {part.stock} {part.unit}
-                </b>
-                <span>минимум: {part.minStock}</span>
-              </div>
-
-              <div className="progress">
-                <div
+        {deficitItems.length === 0 && lowStockItems.length === 0 ? (
+          <div className="warehouse-empty-state">Критичных остатков нет.</div>
+        ) : (
+          <div className="warehouse-shortage-list">
+            {[...deficitItems, ...lowStockItems].slice(0, 6).map((item) => (
+              <button
+                className="warehouse-shortage-item"
+                key={`${item.stockStatus}-${item.partId}`}
+                type="button"
+                onClick={() => onOpenPart(item)}
+              >
+                <div>
+                  <b>{item.code}</b>
+                  <span>{item.name}</span>
+                </div>
+                <strong
                   className={
-                    danger
-                      ? "progress__bar progress__bar--danger"
-                      : "progress__bar"
+                    item.stockStatus === "Дефицит"
+                      ? "warehouse-status warehouse-status--danger"
+                      : "warehouse-status warehouse-status--warning"
                   }
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                >
+                  {item.stockStatus}
+                </strong>
+                <small>
+                  {item.stock} / {item.minStock} {item.unit}
+                </small>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="content-card warehouse-table-card">
+        <div className="content-card__header warehouse-table-card__header">
+          <div>
+            <p>Реестр</p>
+            <h2>Складские позиции</h2>
+          </div>
+        </div>
+
+        <div className="warehouse-filters">
+          <input
+            className="search-field warehouse-filters__search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Поиск по коду, названию, материалу, поставщику или чертежу"
+          />
+
+          <select
+            className="entity-form__control"
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
+            <option value="all">Все статусы</option>
+            <option value="Дефицит">Дефицит</option>
+            <option value="Низкий остаток">Низкий остаток</option>
+            <option value="Норма">Норма</option>
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
+            <option value="all">Все категории</option>
+            {categories.map((currentCategory) => (
+              <option key={currentCategory} value={currentCategory}>
+                {currentCategory}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={supplier}
+            onChange={(event) => setSupplier(event.target.value)}
+          >
+            <option value="all">Все поставщики</option>
+            {suppliers.map((currentSupplier) => (
+              <option key={currentSupplier} value={currentSupplier}>
+                {currentSupplier}
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="entity-form__control"
+            value={sort}
+            onChange={(event) => setSort(event.target.value)}
+          >
+            <option value="status">Сначала проблемные</option>
+            <option value="code">По коду</option>
+            <option value="name">По наименованию</option>
+            <option value="stock">По остатку</option>
+            <option value="minStock">По минимуму</option>
+          </select>
+        </div>
+
+        {filteredItems.length === 0 ? (
+          <div className="warehouse-empty-state">По текущим фильтрам позиций нет.</div>
+        ) : (
+          <div className="warehouse-table-wrap">
+            <table className="warehouse-table">
+              <thead>
+                <tr>
+                  <th>Код</th>
+                  <th>Наименование</th>
+                  <th>Категория</th>
+                  <th>Поставщик</th>
+                  <th>Остаток</th>
+                  <th>Минимум</th>
+                  <th>Статус</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredItems.map((item) => {
+                  const percent = item.minStock > 0
+                    ? Math.min(100, Math.round((item.stock / item.minStock) * 100))
+                    : 100;
+                  const statusClass =
+                    item.stockStatus === "Дефицит"
+                      ? "warehouse-status warehouse-status--danger"
+                      : item.stockStatus === "Низкий остаток"
+                        ? "warehouse-status warehouse-status--warning"
+                        : "warehouse-status warehouse-status--success";
+
+                  return (
+                    <tr key={item.partId}>
+                      <td>
+                        <b>{item.code}</b>
+                        <span>{item.drawing}</span>
+                      </td>
+                      <td>
+                        <b>{item.name}</b>
+                        <span>{item.material}</span>
+                      </td>
+                      <td>{item.category}</td>
+                      <td>{item.supplier}</td>
+                      <td>
+                        <b>{item.stock} {item.unit}</b>
+                        <div className="progress warehouse-table__progress">
+                          <div
+                            className={
+                              item.stockStatus === "Норма"
+                                ? "progress__bar"
+                                : "progress__bar progress__bar--danger"
+                            }
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </td>
+                      <td>{item.minStock} {item.unit}</td>
+                      <td>
+                        <span className={statusClass}>{item.stockStatus}</span>
+                      </td>
+                      <td>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={() => onOpenPart(item)}
+                        >
+                          Карточка
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </section>
   );
 }
