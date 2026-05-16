@@ -1,6 +1,6 @@
-import { pbkdf2Sync, timingSafeEqual } from "node:crypto";
 import type { AuthUser, AuthUserSafe } from "../../domain/entities/AuthUser";
 import type { AuthUserRepository } from "../../domain/repositories/AuthUserRepository";
+import { verifyPassword } from "./AuthPassword";
 
 type LoginInput = {
   username: string;
@@ -14,24 +14,6 @@ function toSafeUser(user: AuthUser): AuthUserSafe {
     displayName: user.displayName,
     role: user.role
   };
-}
-
-function verifyPassword(password: string, user: AuthUser): boolean {
-  const calculatedHash = pbkdf2Sync(
-    password,
-    Buffer.from(user.passwordSalt, "hex"),
-    user.passwordIterations,
-    32,
-    "sha256"
-  );
-
-  const storedHash = Buffer.from(user.passwordHash, "hex");
-
-  if (calculatedHash.length !== storedHash.length) {
-    return false;
-  }
-
-  return timingSafeEqual(calculatedHash, storedHash);
 }
 
 export class LoginUseCase {

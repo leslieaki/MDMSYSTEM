@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  changeAuthUserPasswordRequest,
   clearAuthSession,
   clearOperationLogsRequest,
+  createAuthUserRequest,
   createOperationLogRequest,
   createPartNomenclatureRequest,
   createPartRequest,
@@ -11,6 +13,7 @@ import {
   deleteDrawingImageRequest,
   deletePartNomenclatureRequest,
   deleteReferenceItemRequest,
+  getAuthUsers,
   getDepartments,
   getDrawingImages,
   getEmployees,
@@ -23,6 +26,7 @@ import {
   getStoredAuthSession,
   loginRequest,
   storeAuthSession,
+  updateAuthUserRequest,
   updatePartNomenclatureRequest,
   updatePartRequest,
   updateReferenceItemRequest,
@@ -31,8 +35,10 @@ import {
 import type {
   Department,
   AuthSession,
+  AuthUserRole,
   DrawingImagesMap,
   Employee,
+  ManagedAuthUser,
   Part,
   PartNomenclature,
   Purchase,
@@ -51,12 +57,30 @@ type Page =
   | "employees"
   | "drawings"
   | "journal"
+  | "users"
   | "admin";
 
-type Role = "admin" | "worker";
+type Role = AuthUserRole;
 
 type LoginForm = {
   username: string;
+  password: string;
+};
+
+type CreateUserForm = {
+  username: string;
+  displayName: string;
+  role: AuthUserRole;
+  password: string;
+};
+
+type EditUserForm = {
+  displayName: string;
+  role: AuthUserRole;
+  isActive: boolean;
+};
+
+type PasswordUserForm = {
   password: string;
 };
 
@@ -174,6 +198,12 @@ const menu: MenuItem[] = [
     subtitle: "История действий"
   },
   {
+    id: "users",
+    title: "Пользователи",
+    subtitle: "Учетные записи",
+    adminOnly: true
+  },
+  {
     id: "admin",
     title: "Админка",
     subtitle: "Управление системой",
@@ -210,6 +240,23 @@ const initialReferenceForm: ReferenceForm = {
   description: ""
 };
 
+const initialCreateUserForm: CreateUserForm = {
+  username: "",
+  displayName: "",
+  role: "worker",
+  password: ""
+};
+
+const initialEditUserForm: EditUserForm = {
+  displayName: "",
+  role: "worker",
+  isActive: true
+};
+
+const initialPasswordUserForm: PasswordUserForm = {
+  password: ""
+};
+
 const emptyReferences: ReferencesMap = {
   "part-categories": [],
   materials: [],
@@ -227,6 +274,7 @@ function isValidPage(value: string | null): value is Page {
     value === "employees" ||
     value === "drawings" ||
     value === "journal" ||
+    value === "users" ||
     value === "admin"
   );
 }
@@ -271,7 +319,54 @@ function getReferenceSubtitle(kind: ReferenceKind): string {
 }
 
 function getRoleTitle(role: Role): string {
+  if (role === "superadmin") {
+    return "Суперадминистратор";
+  }
+
   return role === "admin" ? "Администратор системы" : "Работник";
+}
+
+function hasAdminAccess(role: Role): boolean {
+  return role === "superadmin" || role === "admin";
+}
+
+function canCreateUserWithRole(currentRole: Role, targetRole: AuthUserRole): boolean {
+  if (targetRole === "superadmin") {
+    return false;
+  }
+
+  if (currentRole === "superadmin") {
+    return targetRole === "admin" || targetRole === "worker";
+  }
+
+  return currentRole === "admin" && targetRole === "worker";
+}
+
+function canManageUserRecord(
+  currentRole: Role,
+  currentUserId: number,
+  targetUser: ManagedAuthUser
+): boolean {
+  if (currentRole === "superadmin") {
+    return targetUser.role !== "superadmin" || targetUser.id === currentUserId;
+  }
+
+  return currentRole === "admin" && targetUser.role === "worker";
+}
+
+function canChangeUserPassword(
+  currentRole: Role,
+  currentUserId: number,
+  targetUser: ManagedAuthUser
+): boolean {
+  if (currentRole === "superadmin") {
+    return true;
+  }
+
+  return (
+    currentRole === "admin" &&
+    (targetUser.role === "worker" || targetUser.id === currentUserId)
+  );
 }
 
 function onlyDigits(value: string): string {
@@ -310,6 +405,7 @@ function getPageTitle(page: Page): string {
     employees: "Сотрудники и подразделения",
     drawings: "Чертежи",
     journal: "Журнал операций",
+    users: "Пользователи",
     admin: "Администрирование"
   };
 
@@ -541,16 +637,19 @@ function App() {
   );
 
   const role: Role = authSession?.user.role || "worker";
-  const activePage: Page = role === "worker" && page === "admin" ? "dashboard" : page;
+  const activePage: Page =
+    !hasAdminAccess(role) && (page === "admin" || page === "users")
+      ? "dashboard"
+      : page;
 
   const visibleMenu = useMemo(() => {
-    return menu.filter((item) => !item.adminOnly || role === "admin");
+    return menu.filter((item) => !item.adminOnly || hasAdminAccess(role));
   }, [role]);
 
   const authenticatedUserName = authSession?.user.displayName || "Не авторизован";
 
   const lowStockParts = useMemo(() => {
-    return parts.filter((part) => part.stock <= part.minStock);
+    return parts.filter((part) => part.stock > 0 && part.stock < part.minStock);
   }, [parts]);
 
   const reportCategories = useMemo(() => {
@@ -602,7 +701,10 @@ function App() {
       : "Backend API подключен";
 
   function setPage(nextPage: Page) {
-    const safePage: Page = role !== "admin" && nextPage === "admin" ? "dashboard" : nextPage;
+    const safePage: Page =
+      !hasAdminAccess(role) && (nextPage === "admin" || nextPage === "users")
+        ? "dashboard"
+        : nextPage;
 
     localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
 
@@ -652,7 +754,10 @@ function App() {
       "Редактирование записи справочника",
       "Удаление записи справочника",
       "Загрузка чертежа",
-      "Удаление чертежа"
+      "Удаление чертежа",
+      "Создание пользователя",
+      "Редактирование пользователя",
+      "Смена пароля пользователя"
     ]);
 
     if (serverAuditedActions.has(action)) {
@@ -763,7 +868,7 @@ function App() {
   }
 
   function exportStockReportCsv(): void {
-    if (role !== "admin") {
+    if (!hasAdminAccess(role)) {
       setInfoModal({
         title: "Выгрузка отчета",
         subtitle: "Недостаточно прав",
@@ -1288,7 +1393,7 @@ function App() {
   }
 
   function openPartByRole(part: Part) {
-    if (role === "admin") {
+    if (hasAdminAccess(role)) {
       openEditPartModal(part);
       return;
     }
@@ -1300,7 +1405,7 @@ function App() {
     try {
       setActionError("");
 
-      if (role !== "admin") {
+      if (!hasAdminAccess(role)) {
         throw new Error("Загрузка фото чертежа доступна только администратору");
       }
 
@@ -1358,7 +1463,7 @@ function App() {
     try {
       setActionError("");
 
-      if (role !== "admin") {
+      if (!hasAdminAccess(role)) {
         throw new Error("Удаление фото чертежа доступно только администратору");
       }
 
@@ -1909,7 +2014,7 @@ function App() {
         )}
 
         <PageHeader
-          page={page}
+          page={activePage}
           backendStatusText={backendStatusText}
           hasError={Boolean(loadError)}
         />
@@ -1940,7 +2045,7 @@ function App() {
         {activePage === "purchases" && (
           <PurchasesPage
             form={purchaseForm}
-            isDisabled={Boolean(loadError) || parts.length === 0 || role !== "admin"}
+            isDisabled={Boolean(loadError) || parts.length === 0 || !hasAdminAccess(role)}
             parts={parts}
             purchases={purchases}
             role={role}
@@ -2026,7 +2131,15 @@ function App() {
           />
         )}
 
-        {activePage === "admin" && role === "admin" && (
+        {activePage === "users" && hasAdminAccess(role) && authSession && (
+          <UsersPage
+            currentUserId={authSession.user.id}
+            currentUserRole={role}
+            onChanged={() => refreshOperationLog(250)}
+          />
+        )}
+
+        {activePage === "admin" && hasAdminAccess(role) && (
           <AdminPage
             partNomenclature={partNomenclature}
             references={references}
@@ -2217,6 +2330,561 @@ function LoginPage({
   );
 }
 
+
+function UsersPage({
+  currentUserId,
+  currentUserRole,
+  onChanged
+}: {
+  currentUserId: number;
+  currentUserRole: Role;
+  onChanged: () => void;
+}) {
+  const [users, setUsers] = useState<ManagedAuthUser[]>([]);
+  const [createForm, setCreateForm] = useState<CreateUserForm>(
+    initialCreateUserForm
+  );
+  const [editUserId, setEditUserId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<EditUserForm>(initialEditUserForm);
+  const [passwordUserId, setPasswordUserId] = useState<number | null>(null);
+  const [passwordForm, setPasswordForm] = useState<PasswordUserForm>(
+    initialPasswordUserForm
+  );
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [usersLoadError, setUsersLoadError] = useState("");
+  const [usersActionError, setUsersActionError] = useState("");
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setIsLoadingUsers(true);
+      setUsersLoadError("");
+      setUsers(await getAuthUsers());
+    } catch (requestError) {
+      setUsers([]);
+      setUsersLoadError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ошибка загрузки пользователей"
+      );
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadUsers();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loadUsers]);
+
+  const activeUsers = users.filter((user) => user.isActive);
+  const activeSuperadmins = activeUsers.filter(
+    (user) => user.role === "superadmin"
+  );
+  const activeAdmins = activeUsers.filter((user) => user.role === "admin");
+  const activeWorkers = activeUsers.filter((user) => user.role === "worker");
+  const blockedUsers = users.filter((user) => !user.isActive);
+  const editingUser = users.find((user) => user.id === editUserId) || null;
+  const passwordUser = users.find((user) => user.id === passwordUserId) || null;
+  const createRoleOptions: AuthUserRole[] =
+    currentUserRole === "superadmin" ? ["worker", "admin"] : ["worker"];
+  const editRoleOptions: AuthUserRole[] = editingUser
+    ? editingUser.role === "superadmin"
+      ? ["superadmin"]
+      : currentUserRole === "superadmin"
+        ? ["worker", "admin"]
+        : ["worker"]
+    : ["worker"];
+
+  function updateCreateForm(field: keyof CreateUserForm, value: string): void {
+    setCreateForm((currentForm) => ({
+      ...currentForm,
+      [field]: field === "role" ? (value as AuthUserRole) : value
+    }));
+  }
+
+  function updateEditForm(
+    field: keyof EditUserForm,
+    value: string | boolean
+  ): void {
+    setEditForm((currentForm) => ({
+      ...currentForm,
+      [field]: field === "role" ? (value as AuthUserRole) : value
+    }));
+  }
+
+  function startEditUser(user: ManagedAuthUser): void {
+    if (!canManageUserRecord(currentUserRole, currentUserId, user)) {
+      setUsersActionError("Недостаточно прав для изменения этой учетной записи");
+      return;
+    }
+
+    setUsersActionError("");
+    setPasswordUserId(null);
+    setPasswordForm(initialPasswordUserForm);
+    setEditUserId(user.id);
+    setEditForm({
+      displayName: user.displayName,
+      role: user.role,
+      isActive: user.isActive
+    });
+  }
+
+  function cancelEditUser(): void {
+    setEditUserId(null);
+    setEditForm(initialEditUserForm);
+  }
+
+  function startPasswordChange(user: ManagedAuthUser): void {
+    if (!canChangeUserPassword(currentUserRole, currentUserId, user)) {
+      setUsersActionError("Недостаточно прав для смены пароля этой учетной записи");
+      return;
+    }
+
+    setUsersActionError("");
+    setEditUserId(null);
+    setEditForm(initialEditUserForm);
+    setPasswordUserId(user.id);
+    setPasswordForm(initialPasswordUserForm);
+  }
+
+  function cancelPasswordChange(): void {
+    setPasswordUserId(null);
+    setPasswordForm(initialPasswordUserForm);
+  }
+
+  async function submitCreateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setIsSavingUser(true);
+      setUsersActionError("");
+
+      if (!canCreateUserWithRole(currentUserRole, createForm.role)) {
+        throw new Error("Только суперадминистратор может создавать администраторов");
+      }
+
+      await createAuthUserRequest({
+        username: createForm.username.trim(),
+        displayName: createForm.displayName.trim(),
+        role: createForm.role,
+        password: createForm.password
+      });
+
+      setCreateForm(initialCreateUserForm);
+      await loadUsers();
+      onChanged();
+    } catch (requestError) {
+      setUsersActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ошибка создания пользователя"
+      );
+    } finally {
+      setIsSavingUser(false);
+    }
+  }
+
+  async function submitEditUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingUser) {
+      return;
+    }
+
+    try {
+      setIsSavingUser(true);
+      setUsersActionError("");
+
+      if (!canManageUserRecord(currentUserRole, currentUserId, editingUser)) {
+        throw new Error("Недостаточно прав для изменения этой учетной записи");
+      }
+
+      await updateAuthUserRequest(editingUser.id, {
+        displayName: editForm.displayName.trim(),
+        role: editForm.role,
+        isActive: editForm.isActive
+      });
+
+      cancelEditUser();
+      await loadUsers();
+      onChanged();
+    } catch (requestError) {
+      setUsersActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ошибка изменения пользователя"
+      );
+    } finally {
+      setIsSavingUser(false);
+    }
+  }
+
+  async function submitPasswordChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!passwordUser) {
+      return;
+    }
+
+    try {
+      setIsSavingUser(true);
+      setUsersActionError("");
+
+      if (!canChangeUserPassword(currentUserRole, currentUserId, passwordUser)) {
+        throw new Error("Недостаточно прав для смены пароля этой учетной записи");
+      }
+
+      await changeAuthUserPasswordRequest(passwordUser.id, {
+        password: passwordForm.password
+      });
+
+      cancelPasswordChange();
+      await loadUsers();
+      onChanged();
+    } catch (requestError) {
+      setUsersActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ошибка смены пароля"
+      );
+    } finally {
+      setIsSavingUser(false);
+    }
+  }
+
+  return (
+    <section className="users-page">
+      <div className="metrics-grid users-page__metrics">
+        <MetricCard
+          title="Всего учетных записей"
+          value={String(users.length)}
+          text="Все пользователи системы"
+        />
+        <MetricCard
+          title="Суперадминистратор"
+          value={String(activeSuperadmins.length)}
+          text="Единственный полный владелец доступа"
+        />
+        <MetricCard
+          title="Активные администраторы"
+          value={String(activeAdmins.length)}
+          text="Управление рабочими учетными записями"
+        />
+        <MetricCard
+          title="Активные работники"
+          value={String(activeWorkers.length)}
+          text="Просмотр рабочих данных"
+        />
+        <MetricCard
+          danger={blockedUsers.length > 0}
+          title="Отключенные"
+          value={String(blockedUsers.length)}
+          text="Доступ заблокирован"
+        />
+      </div>
+
+      <section className="content-card users-create-card">
+        <div className="content-card__header">
+          <div>
+            <p className="content-card__eyebrow">Новая учетная запись</p>
+            <h2>Создать пользователя</h2>
+            <span>
+              Суперадминистратор может создавать администраторов и работников.
+              Администратор может создавать только работников.
+            </span>
+          </div>
+        </div>
+
+        {usersActionError && (
+          <div className="system-message system-message--error">
+            {usersActionError}
+          </div>
+        )}
+
+        <form className="entity-form users-form" onSubmit={submitCreateUser}>
+          <div className="entity-form__row users-form__row">
+            <label className="entity-form__field">
+              <span>Логин</span>
+              <input
+                className="entity-form__control"
+                value={createForm.username}
+                onChange={(event) =>
+                  updateCreateForm("username", event.target.value)
+                }
+                placeholder="ivanov"
+              />
+            </label>
+
+            <label className="entity-form__field">
+              <span>Имя пользователя</span>
+              <input
+                className="entity-form__control"
+                value={createForm.displayName}
+                onChange={(event) =>
+                  updateCreateForm("displayName", event.target.value)
+                }
+                placeholder="Иванов И.И."
+              />
+            </label>
+          </div>
+
+          <div className="entity-form__row users-form__row">
+            <label className="entity-form__field">
+              <span>Роль</span>
+              <select
+                className="entity-form__control"
+                value={createForm.role}
+                onChange={(event) => updateCreateForm("role", event.target.value)}
+              >
+                {createRoleOptions.map((roleOption) => (
+                  <option key={roleOption} value={roleOption}>
+                    {getRoleTitle(roleOption)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="entity-form__field">
+              <span>Пароль</span>
+              <input
+                className="entity-form__control"
+                type="password"
+                value={createForm.password}
+                onChange={(event) =>
+                  updateCreateForm("password", event.target.value)
+                }
+                placeholder="Не менее 8 символов"
+              />
+            </label>
+          </div>
+
+          <button className="primary-button" disabled={isSavingUser} type="submit">
+            {isSavingUser ? "Сохранение..." : "Создать пользователя"}
+          </button>
+        </form>
+      </section>
+
+      <section className="content-card users-table-card">
+        <div className="content-card__header">
+          <div>
+            <p className="content-card__eyebrow">Учетные записи</p>
+            <h2>Пользователи системы</h2>
+            <span>
+              Отключение пользователя блокирует вход без удаления истории операций.
+            </span>
+          </div>
+
+          <button
+            className="secondary-button secondary-button--large"
+            disabled={isLoadingUsers}
+            type="button"
+            onClick={() => void loadUsers()}
+          >
+            Обновить
+          </button>
+        </div>
+
+        {usersLoadError && (
+          <div className="system-message system-message--error">
+            {usersLoadError}
+          </div>
+        )}
+
+        {isLoadingUsers ? (
+          <div className="system-message">Загрузка пользователей...</div>
+        ) : (
+          <div className="data-table users-table">
+            <div className="data-table__row data-table__row--head users-table__row">
+              <span>Пользователь</span>
+              <span>Роль</span>
+              <span>Статус</span>
+              <span>Создан</span>
+              <span>Действия</span>
+            </div>
+
+            {users.map((user) => {
+              const canEditUser = canManageUserRecord(
+                currentUserRole,
+                currentUserId,
+                user
+              );
+              const canChangePassword = canChangeUserPassword(
+                currentUserRole,
+                currentUserId,
+                user
+              );
+
+              return (
+                <div className="data-table__row users-table__row" key={user.id}>
+                  <span>
+                    <b>{user.displayName}</b>
+                    <small>{user.username}</small>
+                  </span>
+                  <span>{getRoleTitle(user.role)}</span>
+                  <span>
+                    <b
+                      className={
+                        user.isActive
+                          ? "users-status users-status--active"
+                          : "users-status users-status--blocked"
+                      }
+                    >
+                      {user.isActive ? "Активен" : "Отключен"}
+                    </b>
+                  </span>
+                  <span>{formatDateTime(user.createdAt)}</span>
+                  <span className="users-table__actions">
+                    <button
+                      className="secondary-button"
+                      disabled={!canEditUser}
+                      type="button"
+                      onClick={() => startEditUser(user)}
+                    >
+                      Изменить
+                    </button>
+                    <button
+                      className="secondary-button"
+                      disabled={!canChangePassword}
+                      type="button"
+                      onClick={() => startPasswordChange(user)}
+                    >
+                      Пароль
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
+
+            {users.length === 0 && !usersLoadError && (
+              <div className="system-message">Пользователи не найдены</div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {editingUser && (
+        <section className="content-card users-edit-card">
+          <div className="content-card__header">
+            <div>
+              <p className="content-card__eyebrow">Редактирование</p>
+              <h2>{editingUser.displayName}</h2>
+              <span>Логин: {editingUser.username}</span>
+            </div>
+
+            <button className="secondary-button" type="button" onClick={cancelEditUser}>
+              Отмена
+            </button>
+          </div>
+
+          <form className="entity-form users-form" onSubmit={submitEditUser}>
+            <div className="entity-form__row users-form__row">
+              <label className="entity-form__field">
+                <span>Имя пользователя</span>
+                <input
+                  className="entity-form__control"
+                  value={editForm.displayName}
+                  onChange={(event) =>
+                    updateEditForm("displayName", event.target.value)
+                  }
+                />
+              </label>
+
+              <label className="entity-form__field">
+                <span>Роль</span>
+                <select
+                  className="entity-form__control"
+                  value={editForm.role}
+                  disabled={editingUser.role === "superadmin"}
+                  onChange={(event) => updateEditForm("role", event.target.value)}
+                >
+                  {editRoleOptions.map((roleOption) => (
+                    <option key={roleOption} value={roleOption}>
+                      {getRoleTitle(roleOption)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="users-toggle">
+              <input
+                checked={editForm.isActive}
+                disabled={editingUser.id === currentUserId || editingUser.role === "superadmin"}
+                type="checkbox"
+                onChange={(event) =>
+                  updateEditForm("isActive", event.target.checked)
+                }
+              />
+              <span>Учетная запись активна</span>
+            </label>
+
+            {editingUser.id === currentUserId && (
+              <p className="form-hint">
+                Собственную учетную запись нельзя отключить из интерфейса.
+              </p>
+            )}
+
+            {editingUser.role === "superadmin" && (
+              <p className="form-hint">
+                Суперадминистратор в системе единственный: роль и активность не изменяются.
+              </p>
+            )}
+
+            <button className="primary-button" disabled={isSavingUser} type="submit">
+              {isSavingUser ? "Сохранение..." : "Сохранить изменения"}
+            </button>
+          </form>
+        </section>
+      )}
+
+      {passwordUser && (
+        <section className="content-card users-edit-card">
+          <div className="content-card__header">
+            <div>
+              <p className="content-card__eyebrow">Смена пароля</p>
+              <h2>{passwordUser.displayName}</h2>
+              <span>Новый пароль начнет действовать при следующем входе.</span>
+            </div>
+
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={cancelPasswordChange}
+            >
+              Отмена
+            </button>
+          </div>
+
+          <form className="entity-form users-form" onSubmit={submitPasswordChange}>
+            <label className="entity-form__field">
+              <span>Новый пароль</span>
+              <input
+                className="entity-form__control"
+                type="password"
+                value={passwordForm.password}
+                onChange={(event) =>
+                  setPasswordForm({ password: event.target.value })
+                }
+                placeholder="Не менее 8 символов"
+              />
+            </label>
+
+            <button className="primary-button" disabled={isSavingUser} type="submit">
+              {isSavingUser ? "Сохранение..." : "Сменить пароль"}
+            </button>
+          </form>
+        </section>
+      )}
+    </section>
+  );
+}
+
 function Sidebar({
   authSession,
   currentEmployee,
@@ -2262,9 +2930,11 @@ function Sidebar({
           <span>{currentEmployee?.department || "Авторизованный пользователь"}</span>
           <b
             className={
-              role === "admin"
-                ? "profile-card__role profile-card__role--admin"
-                : "profile-card__role profile-card__role--worker"
+              role === "superadmin"
+                ? "profile-card__role profile-card__role--superadmin"
+                : role === "admin"
+                  ? "profile-card__role profile-card__role--admin"
+                  : "profile-card__role profile-card__role--worker"
             }
           >
             {getRoleTitle(role)}
@@ -2522,7 +3192,7 @@ function PartsPage({
   }, [parts]);
 
   const lowStockParts = useMemo(() => {
-    return parts.filter((part) => part.stock > 0 && part.stock <= part.minStock);
+    return parts.filter((part) => part.stock > 0 && part.stock < part.minStock);
   }, [parts]);
 
   const partsWithDrawingFiles = useMemo(() => {
@@ -2538,8 +3208,8 @@ function PartsPage({
       .filter((part) => {
         const hasDrawingFile = Boolean(drawingImages[String(part.id)]);
         const isCritical = part.stock === 0;
-        const isLowStock = part.stock > 0 && part.stock <= part.minStock;
-        const isNormal = part.stock > part.minStock;
+        const isLowStock = part.stock > 0 && part.stock < part.minStock;
+        const isNormal = part.stock >= part.minStock;
         const matchesSearch = query
           ? `${part.code} ${part.name} ${part.category} ${part.material} ${part.supplier} ${part.drawing}`
               .toLowerCase()
@@ -2606,7 +3276,7 @@ function PartsPage({
 
   const totalStock = filteredParts.reduce((sum, part) => sum + part.stock, 0);
   const totalMinStock = filteredParts.reduce((sum, part) => sum + part.minStock, 0);
-  const canExport = role === "admin" && filteredParts.length > 0;
+  const canExport = hasAdminAccess(role) && filteredParts.length > 0;
 
   function getPartStatus(part: Part): {
     className: string;
@@ -2619,7 +3289,7 @@ function PartsPage({
       };
     }
 
-    if (part.stock <= part.minStock) {
+    if (part.stock < part.minStock) {
       return {
         className: "warehouse-status warehouse-status--warning",
         title: "Низкий остаток"
@@ -2683,7 +3353,7 @@ function PartsPage({
           </div>
 
           <div className="content-card__actions">
-            {role === "admin" && (
+            {hasAdminAccess(role) && (
               <>
                 <button
                   className="secondary-button"
@@ -2722,7 +3392,7 @@ function PartsPage({
             danger={lowStockParts.length > 0}
             title="Низкий остаток"
             value={lowStockParts.length.toLocaleString("ru-RU")}
-            text="Остаток выше нуля, но не выше минимума"
+            text="Остаток выше нуля, но ниже минимума"
           />
           <MetricCard
             danger={partsWithoutDrawingFiles > 0}
@@ -3143,7 +3813,7 @@ function PurchasesPage({
             <h2>Журнал снабжения</h2>
           </div>
 
-          {role === "admin" && (
+          {hasAdminAccess(role) && (
             <button
               className="secondary-button"
               type="button"
@@ -3179,7 +3849,7 @@ function PurchasesPage({
         </div>
       </section>
 
-      {role === "admin" && (
+      {hasAdminAccess(role) && (
         <section className="content-card purchases-create-card">
           <div className="content-card__header">
             <div>
@@ -3457,7 +4127,7 @@ function ReportsPage({
             {isRefreshing ? "Обновление..." : "Обновить"}
           </button>
 
-          {role === "admin" && (
+          {hasAdminAccess(role) && (
             <button
               className="primary-button"
               type="button"
@@ -3758,7 +4428,7 @@ function WarehousePage({
 
   const totalStock = filteredItems.reduce((sum, item) => sum + item.stock, 0);
   const totalMinStock = filteredItems.reduce((sum, item) => sum + item.minStock, 0);
-  const canExport = role === "admin" && filteredItems.length > 0;
+  const canExport = hasAdminAccess(role) && filteredItems.length > 0;
 
   function exportWarehouseCsv(): void {
     if (!canExport) {
@@ -3808,7 +4478,7 @@ function WarehousePage({
             <h2>Контроль остатков</h2>
           </div>
 
-          {role === "admin" && (
+          {hasAdminAccess(role) && (
             <button
               className="primary-button"
               disabled={!canExport}
@@ -3836,7 +4506,7 @@ function WarehousePage({
             danger={lowStockItems.length > 0}
             title="Низкий остаток"
             value={lowStockItems.length.toLocaleString("ru-RU")}
-            text="Остаток не выше минимума"
+            text="Остаток ниже минимума"
           />
           <MetricCard
             title="Остаток / минимум"
@@ -4118,7 +4788,7 @@ function DrawingsPage({
   onRemoveDrawingImage: (part: Part) => void;
   onUploadDrawingImage: (part: Part, file: File) => void;
 }) {
-  const canManageDrawings = role === "admin";
+  const canManageDrawings = hasAdminAccess(role);
 
   return (
     <section className="content-card">
@@ -4352,7 +5022,7 @@ function OperationLogPage({
           </span>
         </div>
 
-        {role === "admin" ? (
+        {hasAdminAccess(role) ? (
           <div className="reference-actions">
             <button
               className="secondary-button secondary-button--large"

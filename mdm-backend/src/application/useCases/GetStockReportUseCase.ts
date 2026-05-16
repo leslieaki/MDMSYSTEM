@@ -50,7 +50,7 @@ function getStockStatus(stock: number, minStock: number): StockReportStatus {
     return "Дефицит";
   }
 
-  if (stock <= minStock) {
+  if (stock < minStock) {
     return "Низкий остаток";
   }
 
@@ -90,7 +90,7 @@ export class GetStockReportUseCase {
       ORDER BY
         CASE
           WHEN p.stock <= 0 THEN 0
-          WHEN p.stock <= p.min_stock THEN 1
+          WHEN p.stock < p.min_stock THEN 1
           ELSE 2
         END ASC,
         p.name ASC

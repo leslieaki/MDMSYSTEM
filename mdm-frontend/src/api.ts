@@ -50,13 +50,35 @@ export type Employee = {
   role: string;
 };
 
-export type AuthUserRole = "admin" | "worker";
+export type AuthUserRole = "superadmin" | "admin" | "worker";
 
 export type AuthUser = {
   id: number;
   username: string;
   displayName: string;
   role: AuthUserRole;
+};
+
+export type ManagedAuthUser = AuthUser & {
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type CreateAuthUserData = {
+  username: string;
+  displayName: string;
+  role: AuthUserRole;
+  password: string;
+};
+
+export type UpdateAuthUserData = {
+  displayName: string;
+  role: AuthUserRole;
+  isActive: boolean;
+};
+
+export type ChangeAuthUserPasswordData = {
+  password: string;
 };
 
 export type AuthSession = {
@@ -317,6 +339,48 @@ export function loginRequest(data: LoginData): Promise<AuthSession> {
 
 export function getCurrentUserRequest(): Promise<{ user: AuthUser }> {
   return request<{ user: AuthUser }>("/auth/me");
+}
+
+export function getAuthUsers(): Promise<ManagedAuthUser[]> {
+  return request<ManagedAuthUser[]>("/auth/users");
+}
+
+export function createAuthUserRequest(
+  data: CreateAuthUserData,
+): Promise<ManagedAuthUser> {
+  return request<ManagedAuthUser>("/auth/users", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAuthUserRequest(
+  id: number,
+  data: UpdateAuthUserData,
+): Promise<ManagedAuthUser> {
+  return request<ManagedAuthUser>(`/auth/users/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export function changeAuthUserPasswordRequest(
+  id: number,
+  data: ChangeAuthUserPasswordData,
+): Promise<ManagedAuthUser> {
+  return request<ManagedAuthUser>(`/auth/users/${id}/password`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 }
 
 export function getParts(): Promise<Part[]> {

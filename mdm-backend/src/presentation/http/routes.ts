@@ -1,6 +1,8 @@
 import express, { Router } from "express";
 import type { ErrorRequestHandler } from "express";
 import { ClearOperationLogsUseCase } from "../../application/useCases/ClearOperationLogsUseCase";
+import { ChangeAuthUserPasswordUseCase } from "../../application/useCases/ChangeAuthUserPasswordUseCase";
+import { CreateAuthUserUseCase } from "../../application/useCases/CreateAuthUserUseCase";
 import { CreateOperationLogUseCase } from "../../application/useCases/CreateOperationLogUseCase";
 import { CreatePartUseCase } from "../../application/useCases/CreatePartUseCase";
 import { CreatePartNomenclatureUseCase } from "../../application/useCases/CreatePartNomenclatureUseCase";
@@ -9,6 +11,7 @@ import { CreateReferenceItemUseCase } from "../../application/useCases/CreateRef
 import { DeletePartDrawingFileUseCase } from "../../application/useCases/DeletePartDrawingFileUseCase";
 import { DeletePartNomenclatureUseCase } from "../../application/useCases/DeletePartNomenclatureUseCase";
 import { DeleteReferenceItemUseCase } from "../../application/useCases/DeleteReferenceItemUseCase";
+import { GetAuthUsersUseCase } from "../../application/useCases/GetAuthUsersUseCase";
 import { GetOperationLogsUseCase } from "../../application/useCases/GetOperationLogsUseCase";
 import { GetPartDrawingFileUseCase } from "../../application/useCases/GetPartDrawingFileUseCase";
 import { GetPartDrawingFilesUseCase } from "../../application/useCases/GetPartDrawingFilesUseCase";
@@ -19,6 +22,7 @@ import { GetReferenceItemsUseCase } from "../../application/useCases/GetReferenc
 import { GetStockReportUseCase } from "../../application/useCases/GetStockReportUseCase";
 import { LoginUseCase } from "../../application/useCases/LoginUseCase";
 import { UploadPartDrawingFileUseCase } from "../../application/useCases/UploadPartDrawingFileUseCase";
+import { UpdateAuthUserUseCase } from "../../application/useCases/UpdateAuthUserUseCase";
 import { UpdatePartUseCase } from "../../application/useCases/UpdatePartUseCase";
 import { UpdatePartNomenclatureUseCase } from "../../application/useCases/UpdatePartNomenclatureUseCase";
 import { UpdateReferenceItemUseCase } from "../../application/useCases/UpdateReferenceItemUseCase";
@@ -34,6 +38,7 @@ import { LocalDrawingFileStorage } from "../../infrastructure/storage/LocalDrawi
 import { createAuditLogMiddleware } from "./audit";
 import { createAuthMiddleware, requireRole } from "./auth";
 import { AuthController } from "./controllers/AuthController";
+import { AuthUsersController } from "./controllers/AuthUsersController";
 import { OperationLogsController } from "./controllers/OperationLogsController";
 import { PartDrawingFilesController } from "./controllers/PartDrawingFilesController";
 import { PartNomenclatureController } from "./controllers/PartNomenclatureController";
@@ -55,60 +60,65 @@ export function createApiRouter(): Router {
   const drawingFileStorage = new LocalDrawingFileStorage();
 
   const authenticate = createAuthMiddleware(authUserRepository);
-  const requireAdmin = requireRole("admin");
+  const requireAdmin = requireRole("superadmin", "admin");
   const createOperationLogUseCase = new CreateOperationLogUseCase(
-    operationLogRepository
+    operationLogRepository,
   );
-  const audit = (
-    action: string,
-    section: string,
-    description: string
-  ) =>
+  const audit = (action: string, section: string, description: string) =>
     createAuditLogMiddleware(createOperationLogUseCase, {
       action,
       section,
-      description
+      description,
     });
 
-  const authController = new AuthController(new LoginUseCase(authUserRepository));
+  const authController = new AuthController(
+    new LoginUseCase(authUserRepository),
+  );
+
+  const authUsersController = new AuthUsersController(
+    new GetAuthUsersUseCase(authUserRepository),
+    new CreateAuthUserUseCase(authUserRepository),
+    new UpdateAuthUserUseCase(authUserRepository),
+    new ChangeAuthUserPasswordUseCase(authUserRepository),
+  );
 
   const partsController = new PartsController(
     new GetPartsUseCase(partRepository),
     new CreatePartUseCase(
       partRepository,
       partNomenclatureRepository,
-      referenceRepository
+      referenceRepository,
     ),
     new UpdatePartUseCase(
       partRepository,
       partNomenclatureRepository,
-      referenceRepository
-    )
+      referenceRepository,
+    ),
   );
 
   const partNomenclatureController = new PartNomenclatureController(
     new GetPartNomenclatureUseCase(partNomenclatureRepository),
     new CreatePartNomenclatureUseCase(
       partNomenclatureRepository,
-      referenceRepository
+      referenceRepository,
     ),
     new UpdatePartNomenclatureUseCase(
       partNomenclatureRepository,
-      referenceRepository
+      referenceRepository,
     ),
-    new DeletePartNomenclatureUseCase(partNomenclatureRepository)
+    new DeletePartNomenclatureUseCase(partNomenclatureRepository),
   );
 
   const purchasesController = new PurchasesController(
     new GetPurchasesUseCase(purchaseRepository),
-    new CreatePurchaseUseCase(partRepository, purchaseRepository)
+    new CreatePurchaseUseCase(partRepository, purchaseRepository),
   );
 
   const referencesController = new ReferencesController(
     new GetReferenceItemsUseCase(referenceRepository),
     new CreateReferenceItemUseCase(referenceRepository),
     new UpdateReferenceItemUseCase(referenceRepository),
-    new DeleteReferenceItemUseCase(referenceRepository)
+    new DeleteReferenceItemUseCase(referenceRepository),
   );
 
   const reportsController = new ReportsController(new GetStockReportUseCase());
@@ -116,7 +126,7 @@ export function createApiRouter(): Router {
   const operationLogsController = new OperationLogsController(
     new GetOperationLogsUseCase(operationLogRepository),
     createOperationLogUseCase,
-    new ClearOperationLogsUseCase(operationLogRepository)
+    new ClearOperationLogsUseCase(operationLogRepository),
   );
 
   const partDrawingFilesController = new PartDrawingFilesController(
@@ -124,34 +134,34 @@ export function createApiRouter(): Router {
     new GetPartDrawingFileUseCase(
       partRepository,
       partDrawingFileRepository,
-      drawingFileStorage
+      drawingFileStorage,
     ),
     new UploadPartDrawingFileUseCase(
       partRepository,
       partDrawingFileRepository,
-      drawingFileStorage
+      drawingFileStorage,
     ),
     new DeletePartDrawingFileUseCase(
       partRepository,
       partDrawingFileRepository,
-      drawingFileStorage
-    )
+      drawingFileStorage,
+    ),
   );
 
   const drawingFileUploadMiddleware = express.raw({
     type: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-    limit: "25mb"
+    limit: "25mb",
   });
 
   const drawingFileUploadErrorHandler: ErrorRequestHandler = (
     error,
     _request,
     response,
-    next
+    next,
   ) => {
     if (error instanceof Error && error.name === "PayloadTooLargeError") {
       response.status(413).json({
-        message: "Размер изображения не должен превышать 25 МБ"
+        message: "Размер изображения не должен превышать 25 МБ",
       });
       return;
     }
@@ -166,7 +176,7 @@ export function createApiRouter(): Router {
       response.json({
         status: "ok",
         service: "mdm-backend",
-        database: "connected"
+        database: "connected",
       });
     } catch (error) {
       console.error("PostgreSQL connection error:", error);
@@ -176,13 +186,53 @@ export function createApiRouter(): Router {
         service: "mdm-backend",
         database: "disconnected",
         message:
-          error instanceof Error ? error.message : "Database connection failed"
+          error instanceof Error ? error.message : "Database connection failed",
       });
     }
   });
 
   router.post("/auth/login", authController.login);
   router.get("/auth/me", authenticate, authController.me);
+
+  router.get(
+    "/auth/users",
+    authenticate,
+    requireAdmin,
+    authUsersController.getAll,
+  );
+  router.post(
+    "/auth/users",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Создание пользователя",
+      "Пользователи",
+      "Создана учетная запись пользователя",
+    ),
+    authUsersController.create,
+  );
+  router.patch(
+    "/auth/users/:id",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Редактирование пользователя",
+      "Пользователи",
+      "Изменена учетная запись пользователя",
+    ),
+    authUsersController.update,
+  );
+  router.patch(
+    "/auth/users/:id/password",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Смена пароля пользователя",
+      "Пользователи",
+      "Изменен пароль учетной записи",
+    ),
+    authUsersController.changePassword,
+  );
 
   router.get("/reports/stock", authenticate, reportsController.getStockReport);
 
@@ -192,7 +242,7 @@ export function createApiRouter(): Router {
     "/operation-logs",
     authenticate,
     requireAdmin,
-    operationLogsController.clear
+    operationLogsController.clear,
   );
 
   router.get("/references/:kind", authenticate, referencesController.getAll);
@@ -200,59 +250,95 @@ export function createApiRouter(): Router {
     "/references/:kind",
     authenticate,
     requireAdmin,
-    audit("Создание записи справочника", "Справочники", "Создана запись справочника"),
-    referencesController.create
+    audit(
+      "Создание записи справочника",
+      "Справочники",
+      "Создана запись справочника",
+    ),
+    referencesController.create,
   );
   router.patch(
     "/references/:kind/:id",
     authenticate,
     requireAdmin,
-    audit("Редактирование записи справочника", "Справочники", "Изменена запись справочника"),
-    referencesController.update
+    audit(
+      "Редактирование записи справочника",
+      "Справочники",
+      "Изменена запись справочника",
+    ),
+    referencesController.update,
   );
   router.delete(
     "/references/:kind/:id",
     authenticate,
     requireAdmin,
-    audit("Удаление записи справочника", "Справочники", "Удалена запись справочника"),
-    referencesController.remove
+    audit(
+      "Удаление записи справочника",
+      "Справочники",
+      "Удалена запись справочника",
+    ),
+    referencesController.remove,
   );
 
   router.get(
     "/part-nomenclature",
     authenticate,
-    partNomenclatureController.getAll
+    partNomenclatureController.getAll,
   );
   router.post(
     "/part-nomenclature",
     authenticate,
     requireAdmin,
-    audit("Создание номенклатуры", "Номенклатура", "Создана позиция номенклатуры"),
-    partNomenclatureController.create
+    audit(
+      "Создание номенклатуры",
+      "Номенклатура",
+      "Создана позиция номенклатуры",
+    ),
+    partNomenclatureController.create,
   );
   router.patch(
     "/part-nomenclature/:id",
     authenticate,
     requireAdmin,
-    audit("Редактирование номенклатуры", "Номенклатура", "Изменена позиция номенклатуры"),
-    partNomenclatureController.update
+    audit(
+      "Редактирование номенклатуры",
+      "Номенклатура",
+      "Изменена позиция номенклатуры",
+    ),
+    partNomenclatureController.update,
   );
   router.delete(
     "/part-nomenclature/:id",
     authenticate,
     requireAdmin,
-    audit("Удаление номенклатуры", "Номенклатура", "Удалена позиция номенклатуры"),
-    partNomenclatureController.remove
+    audit(
+      "Удаление номенклатуры",
+      "Номенклатура",
+      "Удалена позиция номенклатуры",
+    ),
+    partNomenclatureController.remove,
   );
 
-  router.get("/parts/drawing-files", authenticate, partDrawingFilesController.getAll);
+  router.get(
+    "/parts/drawing-files",
+    authenticate,
+    partDrawingFilesController.getAll,
+  );
   router.get(
     "/parts/drawing-images",
     authenticate,
-    partDrawingFilesController.getLegacyImageMap
+    partDrawingFilesController.getLegacyImageMap,
   );
-  router.get("/parts/:id/drawing-file", authenticate, partDrawingFilesController.getFile);
-  router.get("/parts/:id/drawing-image", authenticate, partDrawingFilesController.getFile);
+  router.get(
+    "/parts/:id/drawing-file",
+    authenticate,
+    partDrawingFilesController.getFile,
+  );
+  router.get(
+    "/parts/:id/drawing-image",
+    authenticate,
+    partDrawingFilesController.getFile,
+  );
 
   router.put(
     "/parts/:id/drawing-file",
@@ -261,7 +347,7 @@ export function createApiRouter(): Router {
     drawingFileUploadMiddleware,
     drawingFileUploadErrorHandler,
     audit("Загрузка чертежа", "Чертежи", "Загружен файл чертежа"),
-    partDrawingFilesController.upload
+    partDrawingFilesController.upload,
   );
 
   router.put(
@@ -271,7 +357,7 @@ export function createApiRouter(): Router {
     drawingFileUploadMiddleware,
     drawingFileUploadErrorHandler,
     audit("Загрузка чертежа", "Чертежи", "Загружен файл чертежа"),
-    partDrawingFilesController.upload
+    partDrawingFilesController.upload,
   );
 
   router.delete(
@@ -279,14 +365,14 @@ export function createApiRouter(): Router {
     authenticate,
     requireAdmin,
     audit("Удаление чертежа", "Чертежи", "Удален файл чертежа"),
-    partDrawingFilesController.remove
+    partDrawingFilesController.remove,
   );
   router.delete(
     "/parts/:id/drawing-image",
     authenticate,
     requireAdmin,
     audit("Удаление чертежа", "Чертежи", "Удален файл чертежа"),
-    partDrawingFilesController.remove
+    partDrawingFilesController.remove,
   );
 
   router.get("/parts", authenticate, partsController.getAll);
@@ -295,14 +381,14 @@ export function createApiRouter(): Router {
     authenticate,
     requireAdmin,
     audit("Создание детали", "Детали", "Создана карточка детали"),
-    partsController.create
+    partsController.create,
   );
   router.patch(
     "/parts/:id",
     authenticate,
     requireAdmin,
     audit("Редактирование детали", "Детали", "Изменена карточка детали"),
-    partsController.update
+    partsController.update,
   );
 
   router.get("/purchases", authenticate, purchasesController.getAll);
@@ -311,7 +397,7 @@ export function createApiRouter(): Router {
     authenticate,
     requireAdmin,
     audit("Создание закупки", "Закупки", "Создана запись закупки"),
-    purchasesController.create
+    purchasesController.create,
   );
 
   router.get("/departments", authenticate, async (_request, response) => {
@@ -334,7 +420,7 @@ export function createApiRouter(): Router {
         message:
           error instanceof Error
             ? error.message
-            : "Ошибка получения подразделений"
+            : "Ошибка получения подразделений",
       });
     }
   });
@@ -358,7 +444,9 @@ export function createApiRouter(): Router {
 
       response.status(500).json({
         message:
-          error instanceof Error ? error.message : "Ошибка получения сотрудников"
+          error instanceof Error
+            ? error.message
+            : "Ошибка получения сотрудников",
       });
     }
   });

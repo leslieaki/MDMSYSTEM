@@ -1,4 +1,4 @@
-export type AuthUserRole = "admin" | "worker";
+export type AuthUserRole = "superadmin" | "admin" | "worker";
 
 export type AuthUser = {
   id: number;
@@ -17,4 +17,9 @@ export type AuthUserSafe = {
   username: string;
   displayName: string;
   role: AuthUserRole;
+};
+
+export type AuthUserListItem = AuthUserSafe & {
+  isActive: boolean;
+  createdAt: string;
 };
