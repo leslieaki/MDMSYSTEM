@@ -3058,3 +3058,411 @@ select.entity-form__control {
     font-size: 13px;
   }
 }
+
+/* Design system consolidation */
+:root {
+  --radius-control: 14px;
+  --radius-card: 24px;
+  --radius-panel: 30px;
+  --control-height: 46px;
+  --control-height-sm: 38px;
+  --focus-ring: 0 0 0 4px rgba(34, 92, 255, 0.12);
+  --row-hover: #f8fbff;
+  --transition-fast: 160ms ease;
+  --transition-base: 220ms ease;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.table-action-button,
+.modal-close,
+.reference-modal__header button,
+.part-details-tabs__button,
+.mdms-tab,
+.reports-tab {
+  user-select: none;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.table-action-button {
+  min-height: var(--control-height);
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.table-action-button,
+.secondary-button {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--primary);
+}
+
+.primary-button {
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, #2b65ff 0%, var(--primary) 100%);
+  color: #ffffff;
+  box-shadow: 0 14px 32px rgba(34, 92, 255, 0.22);
+}
+
+.danger-button {
+  border: 1px solid rgba(192, 54, 44, 0.2);
+  background: #ffffff;
+  color: var(--danger);
+}
+
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.danger-button:hover:not(:disabled),
+.table-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.danger-button:active:not(:disabled),
+.table-action-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.secondary-button:hover:not(:disabled),
+.table-action-button:hover:not(:disabled) {
+  border-color: rgba(34, 92, 255, 0.34);
+  background: var(--primary-soft);
+  box-shadow: 0 12px 26px rgba(34, 92, 255, 0.08);
+}
+
+.danger-button:hover:not(:disabled) {
+  border-color: rgba(192, 54, 44, 0.32);
+  background: var(--danger-soft);
+  box-shadow: 0 12px 26px rgba(192, 54, 44, 0.08);
+}
+
+.secondary-button--large,
+.danger-button--large,
+.purchases-form__submit,
+.mdm-login-form__button {
+  min-height: 50px;
+  padding: 0 20px;
+}
+
+.search-field,
+.entity-form__control,
+.mdm-login-form__field input,
+.profile-card__select,
+.users-form input,
+.users-form select,
+.warehouse-filters input,
+.warehouse-filters select,
+.warehouse-controls input,
+.warehouse-controls select,
+.purchases-controls input,
+.purchases-controls select,
+.purchases-form input,
+.purchases-form select,
+.reports-controls input,
+.reports-controls select {
+  min-height: var(--control-height);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #ffffff;
+  color: var(--text);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.search-field::placeholder,
+.entity-form__control::placeholder,
+.mdm-login-form__field input::placeholder,
+.users-form input::placeholder,
+.warehouse-filters input::placeholder,
+.warehouse-controls input::placeholder,
+.purchases-controls input::placeholder,
+.purchases-form input::placeholder,
+.reports-controls input::placeholder {
+  color: #98a2b3;
+}
+
+.search-field:focus,
+.entity-form__control:focus,
+.mdm-login-form__field input:focus,
+.profile-card__select:focus,
+.users-form input:focus,
+.users-form select:focus,
+.warehouse-filters input:focus,
+.warehouse-filters select:focus,
+.warehouse-controls input:focus,
+.warehouse-controls select:focus,
+.purchases-controls input:focus,
+.purchases-controls select:focus,
+.purchases-form input:focus,
+.purchases-form select:focus,
+.reports-controls input:focus,
+.reports-controls select:focus {
+  border-color: rgba(34, 92, 255, 0.52);
+  background: #ffffff;
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.entity-form__field,
+.mdm-login-form__field,
+.users-form label,
+.purchases-form label {
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.content-card,
+.section-card,
+.users-table-card,
+.reference-modal,
+.part-details-modal,
+.control-card,
+.control-hero,
+.metric-card,
+.warehouse-panel,
+.purchases-panel {
+  border: 1px solid rgba(198, 210, 226, 0.82);
+  box-shadow: var(--shadow-soft);
+}
+
+.content-card,
+.section-card,
+.users-table-card,
+.control-card,
+.metric-card,
+.warehouse-panel,
+.purchases-panel {
+  border-radius: var(--radius-card);
+}
+
+.reference-modal,
+.part-details-modal {
+  border-radius: var(--radius-panel);
+}
+
+.modal-backdrop {
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(12px);
+}
+
+.modal-close {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 13px;
+  font-size: 0;
+  position: relative;
+}
+
+.modal-close::before,
+.modal-close::after {
+  position: absolute;
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.modal-close::before {
+  transform: rotate(45deg);
+}
+
+.modal-close::after {
+  transform: rotate(-45deg);
+}
+
+.data-table,
+.warehouse-table,
+.purchases-table,
+.parts-table,
+.users-table {
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.data-table__row,
+.users-table__row {
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.data-table__row--head,
+.users-table__row--head,
+.warehouse-table thead,
+.purchases-table thead,
+.parts-table thead {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+
+.data-table__row:not(.data-table__row--head):hover,
+.users-table__row:not(.users-table__row--head):hover,
+.warehouse-table tbody tr:hover,
+.purchases-table tbody tr:hover,
+.parts-table tbody tr:hover {
+  background: var(--row-hover);
+}
+
+.warehouse-table td,
+.warehouse-table th,
+.purchases-table td,
+.purchases-table th,
+.parts-table td,
+.parts-table th {
+  vertical-align: middle;
+}
+
+.warehouse-table td,
+.purchases-table td,
+.parts-table td {
+  overflow-wrap: anywhere;
+}
+
+.status-badge,
+.warehouse-status,
+.profile-card__role,
+.pill {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.status-badge--success,
+.warehouse-status--success {
+  border-color: rgba(22, 128, 61, 0.14);
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-badge--error,
+.warehouse-status--danger {
+  border-color: rgba(192, 54, 44, 0.14);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.warehouse-status--warning,
+.pill {
+  border-color: rgba(183, 110, 0, 0.16);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.empty-state,
+.warehouse-empty-state,
+.part-detail-drawing-preview__empty {
+  border: 1px dashed rgba(148, 163, 184, 0.48);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.94)),
+    var(--surface-soft);
+  color: var(--muted-strong);
+}
+
+.empty-state,
+.warehouse-empty-state {
+  min-height: 74px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.action-error,
+.form-error,
+.mdm-login-form__error {
+  border: 1px solid rgba(192, 54, 44, 0.18);
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.skeleton__line,
+.skeleton__card {
+  position: relative;
+  overflow: hidden;
+  background: #eef2f7;
+}
+
+.skeleton__line::after,
+.skeleton__card::after {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  animation: skeleton__pulse 1.35s infinite;
+  content: "";
+}
+
+@keyframes skeleton__pulse {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .table-action-button {
+    width: 100%;
+  }
+
+  .content-card__actions,
+  .users-table__actions,
+  .reference-actions,
+  .modal-actions,
+  .part-details-modal__actions {
+    width: 100%;
+  }
+
+  .modal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-modal,
+  .part-details-modal {
+    border-radius: 22px;
+  }
+}
