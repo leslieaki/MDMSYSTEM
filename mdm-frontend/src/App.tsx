@@ -84,10 +84,13 @@ type PasswordUserForm = {
   password: string;
 };
 
+type MenuGroup = "control" | "master-data" | "operations" | "administration";
+
 type MenuItem = {
   id: Page;
   title: string;
   subtitle: string;
+  group: MenuGroup;
   adminOnly?: boolean;
 };
 
@@ -181,33 +184,67 @@ const referenceKinds: ReferenceKind[] = [
 ];
 
 const menu: MenuItem[] = [
-  { id: "dashboard", title: "Обзор", subtitle: "Главные показатели" },
-  { id: "parts", title: "Детали", subtitle: "Справочник мастер-данных" },
+  {
+    id: "dashboard",
+    title: "Центр контроля",
+    subtitle: "Риски, статусы, операции",
+    group: "control"
+  },
+  {
+    id: "reports",
+    title: "Отчеты",
+    subtitle: "Аналитика склада",
+    group: "control"
+  },
+  {
+    id: "parts",
+    title: "Детали",
+    subtitle: "Карточки мастер-данных",
+    group: "master-data"
+  },
+  {
+    id: "admin",
+    title: "Номенклатура",
+    subtitle: "Справочники и правила",
+    group: "master-data",
+    adminOnly: true
+  },
+  {
+    id: "drawings",
+    title: "Чертежи",
+    subtitle: "Техническая документация",
+    group: "master-data"
+  },
+  {
+    id: "warehouse",
+    title: "Склад",
+    subtitle: "Остатки и дефицит",
+    group: "operations"
+  },
   {
     id: "purchases",
     title: "Закупки",
-    subtitle: "Журнал снабжения"
+    subtitle: "Журнал снабжения",
+    group: "operations"
   },
-  { id: "warehouse", title: "Склад", subtitle: "Остатки и дефицит" },
-  { id: "reports", title: "Отчеты", subtitle: "Аналитика склада" },
-  { id: "employees", title: "Сотрудники", subtitle: "Подразделения и роли" },
-  { id: "drawings", title: "Чертежи", subtitle: "Документация" },
   {
-    id: "journal",
-    title: "Журнал",
-    subtitle: "История действий"
+    id: "employees",
+    title: "Сотрудники",
+    subtitle: "Подразделения и роли",
+    group: "administration"
   },
   {
     id: "users",
     title: "Пользователи",
     subtitle: "Учетные записи",
+    group: "administration",
     adminOnly: true
   },
   {
-    id: "admin",
-    title: "Админка",
-    subtitle: "Управление системой",
-    adminOnly: true
+    id: "journal",
+    title: "Журнал",
+    subtitle: "История действий",
+    group: "administration"
   }
 ];
 
@@ -397,7 +434,7 @@ function formatMoney(value: number): string {
 
 function getPageTitle(page: Page): string {
   const titles: Record<Page, string> = {
-    dashboard: "Панель управления",
+    dashboard: "Центр контроля",
     parts: "Справочник деталей",
     purchases: "Закупки",
     warehouse: "Складские остатки",
@@ -410,6 +447,46 @@ function getPageTitle(page: Page): string {
   };
 
   return titles[page];
+}
+
+
+function getPageDescription(page: Page): string {
+  const descriptions: Record<Page, string> = {
+    dashboard: "Оперативный контроль качества мастер-данных, складских рисков и последних действий",
+    parts: "Реестр утвержденных карточек деталей с привязкой к номенклатуре, поставщикам и чертежам",
+    purchases: "Рабочий журнал снабжения на основе утвержденных карточек деталей",
+    warehouse: "Контроль остатков, минимальных запасов и позиций для пополнения",
+    reports: "Складская аналитика и выгрузка данных для контроля MDM-процессов",
+    employees: "Подразделения, роли и ответственные сотрудники предприятия",
+    drawings: "Хранение и просмотр технической документации по деталям",
+    journal: "Аудит действий пользователей и административных операций",
+    users: "Управление учетными записями, ролями и доступом",
+    admin: "Администрирование справочников, номенклатуры и правил мастер-данных"
+  };
+
+  return descriptions[page];
+}
+
+function getMenuGroupTitle(group: MenuGroup): string {
+  const titles: Record<MenuGroup, string> = {
+    control: "Контроль",
+    "master-data": "Мастер-данные",
+    operations: "Операции",
+    administration: "Администрирование"
+  };
+
+  return titles[group];
+}
+
+function getMenuGroupOrder(group: MenuGroup): number {
+  const order: Record<MenuGroup, number> = {
+    control: 0,
+    "master-data": 1,
+    operations: 2,
+    administration: 3
+  };
+
+  return order[group];
 }
 
 function getFirstReferenceName(items: ReferenceItem[]): string {
@@ -651,6 +728,14 @@ function App() {
   const lowStockParts = useMemo(() => {
     return parts.filter((part) => part.stock > 0 && part.stock < part.minStock);
   }, [parts]);
+
+  const deficitParts = useMemo(() => {
+    return parts.filter((part) => part.stock <= 0);
+  }, [parts]);
+
+  const partsWithoutDrawings = useMemo(() => {
+    return parts.filter((part) => !drawingImages[String(part.id)]);
+  }, [parts, drawingImages]);
 
   const reportCategories = useMemo(() => {
     return Array.from(
@@ -2013,6 +2098,14 @@ function App() {
           </div>
         )}
 
+        <SystemTopbar
+          authSession={authSession}
+          backendStatusText={backendStatusText}
+          hasError={Boolean(loadError)}
+          page={activePage}
+          role={role}
+        />
+
         <PageHeader
           page={activePage}
           backendStatusText={backendStatusText}
@@ -2021,12 +2114,17 @@ function App() {
 
         {activePage === "dashboard" && (
           <DashboardPage
+            deficitParts={deficitParts}
             lowStockParts={lowStockParts}
+            operationLog={operationLog}
             parts={parts}
             partsCount={parts.length}
+            partsWithoutDrawings={partsWithoutDrawings}
             purchases={purchases}
             purchasesTotal={totalPurchases}
+            role={role}
             totalStock={totalStock}
+            onChangePage={setPage}
             onOpenPart={openPartByRole}
             onOpenPurchase={openPurchaseInfo}
           />
@@ -2902,13 +3000,28 @@ function Sidebar({
   onChangePage: (page: Page) => void;
   onLogout: () => void;
 }) {
+  const groupedMenu = useMemo(() => {
+    const groups = new Map<MenuGroup, MenuItem[]>();
+
+    menu.forEach((item) => {
+      const groupItems = groups.get(item.group) || [];
+      groupItems.push(item);
+      groups.set(item.group, groupItems);
+    });
+
+    return Array.from(groups.entries()).sort(
+      ([leftGroup], [rightGroup]) =>
+        getMenuGroupOrder(leftGroup) - getMenuGroupOrder(rightGroup)
+    );
+  }, [menu]);
+
   return (
     <aside className="mdm-sidebar">
       <div className="mdm-logo">
         <div className="mdm-logo__mark">M</div>
         <div className="mdm-logo__content">
           <b>Factory MDM</b>
-          <span>единые данные завода</span>
+          <span>единый контур мастер-данных</span>
         </div>
       </div>
 
@@ -2947,23 +3060,77 @@ function Sidebar({
       </section>
 
       <nav className="mdm-nav">
-        {menu.map((item) => (
-          <button
-            key={item.id}
-            className={
-              page === item.id
-                ? "mdm-nav__button mdm-nav__button--active"
-                : "mdm-nav__button"
-            }
-            type="button"
-            onClick={() => onChangePage(item.id)}
-          >
-            <span className="mdm-nav__title">{item.title}</span>
-            <span className="mdm-nav__subtitle">{item.subtitle}</span>
-          </button>
+        {groupedMenu.map(([group, items]) => (
+          <section className="mdm-nav__group" key={group}>
+            <p className="mdm-nav__group-title">{getMenuGroupTitle(group)}</p>
+
+            {items.map((item) => (
+              <button
+                key={item.id}
+                className={
+                  page === item.id
+                    ? "mdm-nav__button mdm-nav__button--active"
+                    : "mdm-nav__button"
+                }
+                type="button"
+                onClick={() => onChangePage(item.id)}
+              >
+                <span className="mdm-nav__title">{item.title}</span>
+                <span className="mdm-nav__subtitle">{item.subtitle}</span>
+              </button>
+            ))}
+          </section>
         ))}
       </nav>
     </aside>
+  );
+}
+
+function SystemTopbar({
+  authSession,
+  backendStatusText,
+  hasError,
+  page,
+  role
+}: {
+  authSession: AuthSession;
+  backendStatusText: string;
+  hasError: boolean;
+  page: Page;
+  role: Role;
+}) {
+  const currentDate = new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date());
+
+  return (
+    <section className="system-topbar">
+      <div className="breadcrumbs" aria-label="Навигационная цепочка">
+        <span>Factory MDM</span>
+        <span>/</span>
+        <b>{getPageTitle(page)}</b>
+      </div>
+
+      <div className="system-topbar__right">
+        <span className="system-chip">{currentDate}</span>
+        <span className="system-chip">{getRoleTitle(role)}</span>
+        <span className="system-chip">{authSession.user.displayName}</span>
+        <span
+          className={
+            hasError
+              ? "system-chip system-chip--error"
+              : "system-chip system-chip--success"
+          }
+        >
+          <i />
+          {backendStatusText}
+        </span>
+      </div>
+    </section>
   );
 }
 
@@ -2981,10 +3148,11 @@ function PageHeader({
       <div>
         <p className="page-header__eyebrow">Централизованная MDM-система</p>
         <h1 className="page-header__title">{getPageTitle(page)}</h1>
+        <p className="page-header__description">{getPageDescription(page)}</p>
       </div>
 
       <div className="page-header__badges">
-        <span className="tech-badge">React + TypeScript</span>
+        <span className="tech-badge">PostgreSQL · Express · React</span>
 
         <span
           className={
@@ -3002,31 +3170,121 @@ function PageHeader({
 }
 
 function DashboardPage({
+  deficitParts,
   lowStockParts,
+  operationLog,
   parts,
   partsCount,
+  partsWithoutDrawings,
   purchases,
   purchasesTotal,
+  role,
   totalStock,
+  onChangePage,
   onOpenPart,
   onOpenPurchase
 }: {
+  deficitParts: Part[];
   lowStockParts: Part[];
+  operationLog: OperationLogEntry[];
   parts: Part[];
   partsCount: number;
+  partsWithoutDrawings: Part[];
   purchases: Purchase[];
   purchasesTotal: number;
+  role: Role;
   totalStock: number;
+  onChangePage: (page: Page) => void;
   onOpenPart: (part: Part) => void;
   onOpenPurchase: (purchase: Purchase) => void;
 }) {
-  const latestPurchases = purchases.slice(0, 6);
-  const criticalParts = lowStockParts.slice(0, 8);
-  const deficitCount = lowStockParts.filter((part) => part.stock === 0).length;
+  const latestPurchases = purchases.slice(0, 5);
+  const criticalParts = [...deficitParts, ...lowStockParts]
+    .filter(
+      (part, index, collection) =>
+        collection.findIndex((currentPart) => currentPart.id === part.id) === index
+    )
+    .slice(0, 8);
+  const latestOperations = operationLog.slice(0, 6);
+  const dataQualityWarnings = [
+    {
+      title: "Детали без чертежей",
+      value: partsWithoutDrawings.length,
+      text: "Нужно загрузить техническую документацию",
+      page: "drawings" as Page
+    },
+    {
+      title: "Нулевой остаток",
+      value: deficitParts.length,
+      text: "Позиции требуют срочной реакции склада",
+      page: "warehouse" as Page
+    },
+    {
+      title: "Низкий остаток",
+      value: lowStockParts.length,
+      text: "Остаток ниже минимального уровня",
+      page: "warehouse" as Page
+    }
+  ];
+  const healthyPartsCount = Math.max(
+    partsCount - deficitParts.length - lowStockParts.length,
+    0
+  );
+  const qualityScore = partsCount
+    ? Math.round(((partsCount - partsWithoutDrawings.length) / partsCount) * 100)
+    : 100;
 
   return (
-    <section className="dashboard-page">
-      <div className="metrics-grid">
+    <section className="dashboard-page dashboard-page--control">
+      <section className="control-hero">
+        <div className="control-hero__content">
+          <p className="control-hero__eyebrow">Оперативный центр</p>
+          <h2>Контроль мастер-данных и складских рисков</h2>
+          <p>
+            Сводка показывает критичные остатки, качество карточек деталей,
+            последние закупки и действия пользователей. Экран предназначен для
+            быстрого ежедневного контроля состояния MDM-контура.
+          </p>
+
+          <div className="control-hero__actions">
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => onChangePage("warehouse")}
+            >
+              Открыть склад
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onChangePage("journal")}
+            >
+              Журнал операций
+            </button>
+            {hasAdminAccess(role) && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onChangePage("admin")}
+              >
+                Управление справочниками
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="control-health-card">
+          <span>Качество карточек</span>
+          <strong>{qualityScore}%</strong>
+          <p>
+            {partsWithoutDrawings.length > 0
+              ? `Без чертежей: ${partsWithoutDrawings.length}`
+              : "По карточкам не найдено критичных пропусков"}
+          </p>
+        </div>
+      </section>
+
+      <div className="metrics-grid metrics-grid--control">
         <MetricCard
           title="Карточек деталей"
           value={partsCount.toLocaleString("ru-RU")}
@@ -3035,118 +3293,185 @@ function DashboardPage({
         <MetricCard
           title="Остаток на складе"
           value={totalStock.toLocaleString("ru-RU")}
-          text="Суммарное количество по всем позициям"
+          text={`Норма по позициям: ${healthyPartsCount.toLocaleString("ru-RU")}`}
         />
         <MetricCard
           danger={lowStockParts.length > 0}
-          title="Требуют контроля"
+          title="Низкий остаток"
           value={lowStockParts.length.toLocaleString("ru-RU")}
-          text="Остаток ниже или равен минимальному"
+          text="Ниже минимального уровня"
         />
         <MetricCard
-          danger={deficitCount > 0}
+          danger={deficitParts.length > 0}
           title="Дефицит"
-          value={deficitCount.toLocaleString("ru-RU")}
-          text="Позиции с нулевым остатком"
+          value={deficitParts.length.toLocaleString("ru-RU")}
+          text="Остаток равен нулю или ниже"
         />
       </div>
 
-      <section className="content-card">
-        <div className="content-card__header">
-          <div>
-            <p>Контроль склада</p>
-            <h2>Позиции, требующие пополнения</h2>
-          </div>
-        </div>
-
-        <div className="data-table">
-          <div className="data-table__row data-table__row--head">
-            <span>Деталь</span>
-            <span>Поставщик</span>
-            <span>Остаток</span>
-            <span>Минимум</span>
-          </div>
-
-          {criticalParts.length > 0 ? (
-            criticalParts.map((part) => (
-              <button
-                className="data-table__row data-table__row--button"
-                key={part.id}
-                type="button"
-                onClick={() => onOpenPart(part)}
-              >
-                <span>
-                  {part.code} · {part.name}
-                </span>
-                <span>{part.supplier}</span>
-                <span>
-                  {part.stock} {part.unit}
-                </span>
-                <span>
-                  {part.minStock} {part.unit}
-                </span>
-              </button>
-            ))
-          ) : (
-            <div className="data-table__row">
-              <span>Позиций с низким остатком нет</span>
-              <span>—</span>
-              <span>—</span>
-              <span>—</span>
+      <div className="control-grid">
+        <section className="content-card content-card--primary">
+          <div className="content-card__header">
+            <div>
+              <p>Складской контроль</p>
+              <h2>Позиции, требующие реакции</h2>
             </div>
-          )}
-        </div>
-      </section>
-
-      <section className="content-card">
-        <div className="content-card__header">
-          <div>
-            <p>Закупки</p>
-            <h2>Последние операции</h2>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onChangePage("warehouse")}
+            >
+              В склад
+            </button>
           </div>
 
-          <div className="status-badge status-badge--success">
-            <i />
-            {formatMoney(purchasesTotal)}
-          </div>
-        </div>
+          <div className="data-table data-table--dense">
+            <div className="data-table__row data-table__row--head">
+              <span>Деталь</span>
+              <span>Поставщик</span>
+              <span>Остаток</span>
+              <span>Минимум</span>
+            </div>
 
-        <div className="data-table">
-          <div className="data-table__row data-table__row--head">
-            <span>Дата</span>
-            <span>Деталь</span>
-            <span>Кол-во</span>
-            <span>Сумма</span>
-          </div>
-
-          {latestPurchases.length > 0 ? (
-            latestPurchases.map((purchase) => {
-              const part = parts.find((item) => item.id === purchase.partId);
-
-              return (
+            {criticalParts.length > 0 ? (
+              criticalParts.map((part) => (
                 <button
                   className="data-table__row data-table__row--button"
-                  key={purchase.id}
+                  key={part.id}
                   type="button"
-                  onClick={() => onOpenPurchase(purchase)}
+                  onClick={() => onOpenPart(part)}
                 >
-                  <span>{formatDateTime(purchase.date)}</span>
-                  <span>{part?.name || purchase.rawName}</span>
-                  <span>{purchase.quantity}</span>
-                  <span>{formatMoney(purchase.price)}</span>
+                  <span>
+                    <b>{part.code}</b>
+                    <small>{part.name}</small>
+                  </span>
+                  <span>{part.supplier}</span>
+                  <span>
+                    {part.stock} {part.unit}
+                  </span>
+                  <span>
+                    {part.minStock} {part.unit}
+                  </span>
                 </button>
-              );
-            })
-          ) : (
-            <div className="data-table__row">
-              <span>Закупок пока нет</span>
-              <span>—</span>
-              <span>—</span>
-              <span>—</span>
+              ))
+            ) : (
+              <div className="empty-state">
+                <b>Критичных складских предупреждений нет</b>
+                <span>Остатки находятся в пределах заданных минимумов.</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="content-card">
+          <div className="content-card__header">
+            <div>
+              <p>Качество мастер-данных</p>
+              <h2>Контроль заполненности</h2>
             </div>
-          )}
-        </div>
-      </section>
+          </div>
+
+          <div className="quality-list">
+            {dataQualityWarnings.map((item) => (
+              <button
+                className="quality-list__item"
+                key={item.title}
+                type="button"
+                onClick={() => onChangePage(item.page)}
+              >
+                <span>
+                  <b>{item.title}</b>
+                  <small>{item.text}</small>
+                </span>
+                <strong>{item.value.toLocaleString("ru-RU")}</strong>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="control-grid control-grid--secondary">
+        <section className="content-card">
+          <div className="content-card__header">
+            <div>
+              <p>Закупки</p>
+              <h2>Последние операции</h2>
+            </div>
+
+            <div className="status-badge status-badge--success">
+              <i />
+              {formatMoney(purchasesTotal)}
+            </div>
+          </div>
+
+          <div className="data-table data-table--dense">
+            <div className="data-table__row data-table__row--head">
+              <span>Дата</span>
+              <span>Деталь</span>
+              <span>Кол-во</span>
+              <span>Сумма</span>
+            </div>
+
+            {latestPurchases.length > 0 ? (
+              latestPurchases.map((purchase) => {
+                const part = parts.find((item) => item.id === purchase.partId);
+
+                return (
+                  <button
+                    className="data-table__row data-table__row--button"
+                    key={purchase.id}
+                    type="button"
+                    onClick={() => onOpenPurchase(purchase)}
+                  >
+                    <span>{formatDateTime(purchase.date)}</span>
+                    <span>{part?.name || purchase.rawName}</span>
+                    <span>{purchase.quantity}</span>
+                    <span>{formatMoney(purchase.price)}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="empty-state">
+                <b>Закупок пока нет</b>
+                <span>Журнал закупок будет заполняться после проведения операций.</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="content-card">
+          <div className="content-card__header">
+            <div>
+              <p>Аудит</p>
+              <h2>Последние действия</h2>
+            </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => onChangePage("journal")}
+            >
+              Открыть журнал
+            </button>
+          </div>
+
+          <div className="audit-feed">
+            {latestOperations.length > 0 ? (
+              latestOperations.map((entry) => (
+                <article className="audit-feed__item" key={entry.id}>
+                  <span>{formatDateTime(entry.createdAt)}</span>
+                  <b>{entry.action}</b>
+                  <p>{entry.description}</p>
+                </article>
+              ))
+            ) : (
+              <div className="empty-state">
+                <b>Журнал пока пуст</b>
+                <span>После операций пользователей здесь появится аудит.</span>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </section>
   );
 }
