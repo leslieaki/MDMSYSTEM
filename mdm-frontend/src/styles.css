@@ -43,7 +43,8 @@ body,
 }
 
 body {
-  min-width: 1180px;
+  min-width: 0;
+  overflow-x: hidden;
   margin: 0;
   background:
     radial-gradient(circle at 12% 8%, rgba(34, 92, 255, 0.12), transparent 34%),
@@ -2823,5 +2824,237 @@ select.entity-form__control {
   .part-details-modal__actions {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+
+.topbar__left {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile__button {
+  display: none;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(16, 24, 39, 0.05);
+}
+
+.mobile__button span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--text);
+}
+
+.mobile__overlay {
+  display: none;
+}
+
+.modal-close {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.modal-close:hover {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.42);
+  background: #ffffff;
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  body {
+    min-width: 0;
+  }
+
+  .mdm-app {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .mdm-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10001;
+    width: min(320px, 88vw);
+    height: 100dvh;
+    transform: translateX(-110%);
+    transition: transform 180ms ease;
+  }
+
+  .mdm-sidebar._open {
+    transform: translateX(0);
+  }
+
+  .mobile__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.52);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+  }
+
+  .mobile__overlay._open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .mobile__button {
+    display: inline-flex;
+    flex-direction: column;
+  }
+
+  .mdm-main {
+    padding: 18px 14px 32px;
+  }
+
+  .system-topbar {
+    position: sticky;
+    top: 10px;
+    z-index: 20;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 18px;
+    border-radius: 18px;
+  }
+
+  .topbar__left {
+    width: 100%;
+  }
+
+  .breadcrumbs {
+    flex: 1 1 auto;
+  }
+
+  .system-topbar__right {
+    justify-content: flex-start;
+  }
+
+  .system-chip {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .page-header {
+    display: block;
+    margin-bottom: 18px;
+  }
+
+  .page-header__title {
+    font-size: 30px;
+  }
+
+  .page-header__description {
+    font-size: 14px;
+  }
+
+  .control-hero,
+  .control-grid,
+  .control-kpi-grid,
+  .control-quality-grid,
+  .metric-grid,
+  .dashboard-grid,
+  .form-grid,
+  .warehouse-controls,
+  .purchases-controls,
+  .reports-controls,
+  .users-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .section-card,
+  .control-hero,
+  .reference-modal,
+  .part-details-modal {
+    border-radius: 22px;
+  }
+
+  .data-table,
+  .parts-table,
+  .warehouse-table,
+  .purchases-table,
+  .users-table {
+    overflow-x: auto;
+  }
+
+  .part-details-modal {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .part-details-modal__header {
+    gap: 16px;
+  }
+
+  .part-details-modal__actions {
+    align-items: center;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .mdm-main {
+    padding: 14px 10px 28px;
+  }
+
+  .system-topbar__right {
+    gap: 6px;
+  }
+
+  .page-header__title {
+    font-size: 26px;
+  }
+
+  .part-details-modal__meta {
+    gap: 6px;
+  }
+
+  .part-details-modal__actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .part-details-tabs__button {
+    padding: 10px 12px;
+    font-size: 13px;
   }
 }

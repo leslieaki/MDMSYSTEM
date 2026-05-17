@@ -678,6 +678,7 @@ function getPartStockProgress(part: Part): number {
 
 function App() {
   const [page, setPageState] = useState<Page>(getInitialPage);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [authSession, setAuthSession] = useState<AuthSession | null>(() =>
     getStoredAuthSession()
   );
@@ -845,6 +846,7 @@ function App() {
         : nextPage;
 
     localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
+    setIsMobileMenuOpen(false);
 
     if (getPageFromHash() === safePage) {
       setPageState(safePage);
@@ -2104,9 +2106,17 @@ function App() {
 
   return (
     <div className="mdm-app">
+      <button
+        aria-label="Закрыть меню"
+        className={isMobileMenuOpen ? "mobile__overlay _open" : "mobile__overlay"}
+        type="button"
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
       <Sidebar
         authSession={authSession}
         currentEmployee={currentEmployee}
+        isOpen={isMobileMenuOpen}
         menu={visibleMenu}
         page={activePage}
         role={role}
@@ -2135,13 +2145,10 @@ function App() {
           hasError={Boolean(loadError)}
           page={activePage}
           role={role}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        <PageHeader
-          page={activePage}
-          backendStatusText={backendStatusText}
-          hasError={Boolean(loadError)}
-        />
+        <PageHeader page={activePage} />
 
         {activePage === "dashboard" && (
           <DashboardPage
@@ -3423,6 +3430,7 @@ function UsersPage({
 function Sidebar({
   authSession,
   currentEmployee,
+  isOpen,
   menu,
   page,
   role,
@@ -3431,6 +3439,7 @@ function Sidebar({
 }: {
   authSession: AuthSession;
   currentEmployee: Employee | undefined;
+  isOpen: boolean;
   menu: MenuItem[];
   page: Page;
   role: Role;
@@ -3453,7 +3462,7 @@ function Sidebar({
   }, [menu]);
 
   return (
-    <aside className="mdm-sidebar">
+    <aside className={isOpen ? "mdm-sidebar _open" : "mdm-sidebar"}>
       <div className="mdm-logo">
         <div className="mdm-logo__mark">M</div>
         <div className="mdm-logo__content">
@@ -3528,13 +3537,15 @@ function SystemTopbar({
   backendStatusText,
   hasError,
   page,
-  role
+  role,
+  onOpenMobileMenu
 }: {
   authSession: AuthSession;
   backendStatusText: string;
   hasError: boolean;
   page: Page;
   role: Role;
+  onOpenMobileMenu: () => void;
 }) {
   const currentDate = new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
@@ -3546,10 +3557,23 @@ function SystemTopbar({
 
   return (
     <section className="system-topbar">
-      <div className="breadcrumbs" aria-label="Навигационная цепочка">
-        <span>Factory MDM</span>
-        <span>/</span>
-        <b>{getPageTitle(page)}</b>
+      <div className="topbar__left">
+        <button
+          aria-label="Открыть меню"
+          className="mobile__button"
+          type="button"
+          onClick={onOpenMobileMenu}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <div className="breadcrumbs" aria-label="Навигационная цепочка">
+          <span>Factory MDM</span>
+          <span>/</span>
+          <b>{getPageTitle(page)}</b>
+        </div>
       </div>
 
       <div className="system-topbar__right">
@@ -3571,36 +3595,13 @@ function SystemTopbar({
   );
 }
 
-function PageHeader({
-  page,
-  backendStatusText,
-  hasError
-}: {
-  page: Page;
-  backendStatusText: string;
-  hasError: boolean;
-}) {
+function PageHeader({ page }: { page: Page }) {
   return (
     <header className="page-header">
       <div>
         <p className="page-header__eyebrow">Централизованная MDM-система</p>
         <h1 className="page-header__title">{getPageTitle(page)}</h1>
         <p className="page-header__description">{getPageDescription(page)}</p>
-      </div>
-
-      <div className="page-header__badges">
-        <span className="tech-badge">PostgreSQL · Express · React</span>
-
-        <span
-          className={
-            hasError
-              ? "status-badge status-badge--error"
-              : "status-badge status-badge--success"
-          }
-        >
-          <i />
-          {backendStatusText}
-        </span>
       </div>
     </header>
   );
