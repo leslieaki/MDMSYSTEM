@@ -140,6 +140,14 @@ type PartModalState = {
   part?: Part;
 };
 
+type PartDetailTab =
+  | "passport"
+  | "warehouse"
+  | "purchases"
+  | "drawing"
+  | "quality"
+  | "history";
+
 type NomenclatureModalMode = "create" | "edit" | "delete";
 
 type NomenclatureModalState = {
@@ -632,6 +640,42 @@ function formatDateTime(value: string): string {
   }).format(date);
 }
 
+function getPartStockStatus(part: Part): {
+  className: string;
+  tone: "success" | "warning" | "danger";
+  title: string;
+} {
+  if (part.stock <= 0) {
+    return {
+      className: "warehouse-status warehouse-status--danger",
+      tone: "danger",
+      title: "Дефицит"
+    };
+  }
+
+  if (part.stock < part.minStock) {
+    return {
+      className: "warehouse-status warehouse-status--warning",
+      tone: "warning",
+      title: "Низкий остаток"
+    };
+  }
+
+  return {
+    className: "warehouse-status warehouse-status--success",
+    tone: "success",
+    title: "Норма"
+  };
+}
+
+function getPartStockProgress(part: Part): number {
+  if (part.minStock <= 0) {
+    return 100;
+  }
+
+  return Math.min(100, Math.round((part.stock / part.minStock) * 100));
+}
+
 function App() {
   const [page, setPageState] = useState<Page>(getInitialPage);
   const [authSession, setAuthSession] = useState<AuthSession | null>(() =>
@@ -704,6 +748,7 @@ function App() {
   const [isSavingReference, setIsSavingReference] = useState(false);
 
   const [infoModal, setInfoModal] = useState<InfoModalState | null>(null);
+  const [partDetailsId, setPartDetailsId] = useState<number | null>(null);
   const [operationLog, setOperationLog] =
     useState<OperationLogEntry[]>([]);
   const [drawingImages, setDrawingImages] =
@@ -776,6 +821,14 @@ function App() {
   const selectedPurchasePart = parts.find(
     (part) => String(part.id) === purchaseForm.partId
   );
+
+  const partDetails = useMemo(() => {
+    if (partDetailsId === null) {
+      return null;
+    }
+
+    return parts.find((part) => part.id === partDetailsId) || null;
+  }, [partDetailsId, parts]);
 
   const isFormModalOpen = Boolean(partModal || nomenclatureModal || referenceModal);
 
@@ -1446,43 +1499,15 @@ function App() {
     });
   }
 
-  function openPartInfo(part: Part) {
-    const drawingImage = drawingImages[String(part.id)];
+  function closePartDetails() {
+    setPartDetailsId(null);
+  }
 
-    setInfoModal({
-      title: part.name,
-      subtitle: "Карточка детали",
-      image: drawingImage
-        ? {
-            src: drawingImage,
-            alt: `Фото чертежа ${part.drawing}`,
-            caption: `Чертеж ${part.drawing}`
-          }
-        : undefined,
-      rows: [
-        { label: "Код", value: part.code },
-        { label: "Категория", value: part.category },
-        { label: "Материал", value: part.material },
-        { label: "Поставщик", value: part.supplier },
-        { label: "Единица измерения", value: part.unit },
-        { label: "Вес", value: `${part.weight} кг` },
-        { label: "Остаток", value: `${part.stock} ${part.unit}` },
-        { label: "Минимальный остаток", value: String(part.minStock) },
-        { label: "Чертеж", value: part.drawing },
-        {
-          label: "Фото чертежа",
-          value: drawingImage ? "Загружено" : "Не загружено"
-        }
-      ]
-    });
+  function openPartInfo(part: Part) {
+    setPartDetailsId(part.id);
   }
 
   function openPartByRole(part: Part) {
-    if (hasAdminAccess(role)) {
-      openEditPartModal(part);
-      return;
-    }
-
     openPartInfo(part);
   }
 
@@ -1991,6 +2016,11 @@ function App() {
         return;
       }
 
+      if (partDetailsId !== null) {
+        setPartDetailsId(null);
+        return;
+      }
+
       if (referenceModal) {
         const hasChanges =
           !areReferenceFormsEqual(referenceForm, referenceFormInitial) ||
@@ -2044,6 +2074,7 @@ function App() {
     };
   }, [
     infoModal,
+    partDetailsId,
     referenceModal,
     nomenclatureModal,
     partModal,
@@ -2301,7 +2332,413 @@ function App() {
         />
       )}
 
+      {partDetails && (
+        <PartDetailsModal
+          drawingImage={drawingImages[String(partDetails.id)]}
+          operationLog={operationLog}
+          part={partDetails}
+          purchases={purchases}
+          role={role}
+          onClose={closePartDetails}
+          onEdit={() => {
+            closePartDetails();
+            openEditPartModal(partDetails);
+          }}
+          onOpenPurchase={openPurchaseInfo}
+          onRemoveDrawingImage={removeDrawingImage}
+          onUploadDrawingImage={uploadDrawingImage}
+        />
+      )}
+
       {infoModal && <InfoModal modal={infoModal} onClose={closeInfoModal} />}
+    </div>
+  );
+}
+
+function PartDetailsModal({
+  drawingImage,
+  operationLog,
+  part,
+  purchases,
+  role,
+  onClose,
+  onEdit,
+  onOpenPurchase,
+  onRemoveDrawingImage,
+  onUploadDrawingImage
+}: {
+  drawingImage?: string;
+  operationLog: OperationLogEntry[];
+  part: Part;
+  purchases: Purchase[];
+  role: Role;
+  onClose: () => void;
+  onEdit: () => void;
+  onOpenPurchase: (purchase: Purchase) => void;
+  onRemoveDrawingImage: (part: Part) => Promise<void>;
+  onUploadDrawingImage: (part: Part, file: File) => Promise<void>;
+}) {
+  const [activeTab, setActiveTab] = useState<PartDetailTab>("passport");
+  const [isDrawingBusy, setIsDrawingBusy] = useState(false);
+  const stockStatus = getPartStockStatus(part);
+  const stockProgress = getPartStockProgress(part);
+  const partPurchases = useMemo(() => {
+    return purchases
+      .filter((purchase) => purchase.partId === part.id)
+      .sort(
+        (left, right) =>
+          new Date(right.date).getTime() - new Date(left.date).getTime()
+      );
+  }, [part.id, purchases]);
+  const purchaseQuantity = partPurchases.reduce(
+    (sum, purchase) => sum + purchase.quantity,
+    0
+  );
+  const purchaseTotal = partPurchases.reduce(
+    (sum, purchase) => sum + purchase.price,
+    0
+  );
+  const relatedHistory = useMemo(() => {
+    const code = part.code.toLowerCase();
+    const name = part.name.toLowerCase();
+    const drawing = part.drawing.toLowerCase();
+
+    return operationLog
+      .filter((entry) => {
+        const source = `${entry.action} ${entry.section} ${entry.description}`.toLowerCase();
+
+        return source.includes(code) || source.includes(name) || source.includes(drawing);
+      })
+      .slice(0, 8);
+  }, [operationLog, part.code, part.drawing, part.name]);
+
+  const qualityChecks = [
+    {
+      label: "Чертеж",
+      ok: Boolean(drawingImage),
+      text: drawingImage ? "Файл чертежа загружен" : "Нет файла чертежа"
+    },
+    {
+      label: "Поставщик",
+      ok: Boolean(part.supplier.trim()),
+      text: part.supplier ? "Поставщик указан" : "Поставщик не указан"
+    },
+    {
+      label: "Складской минимум",
+      ok: part.minStock > 0,
+      text: part.minStock > 0 ? "Минимальный остаток задан" : "Минимальный остаток не задан"
+    },
+    {
+      label: "Остаток",
+      ok: part.stock >= 0,
+      text: part.stock >= 0 ? "Остаток корректен" : "Остаток требует проверки"
+    },
+    {
+      label: "Закупочная история",
+      ok: partPurchases.length > 0,
+      text: partPurchases.length > 0 ? "Есть связанные закупки" : "Закупок по детали нет"
+    }
+  ];
+  const qualityScore = Math.round(
+    (qualityChecks.filter((item) => item.ok).length / qualityChecks.length) * 100
+  );
+  const tabs: Array<{ id: PartDetailTab; title: string }> = [
+    { id: "passport", title: "Паспорт" },
+    { id: "warehouse", title: "Склад" },
+    { id: "purchases", title: "Закупки" },
+    { id: "drawing", title: "Чертеж" },
+    { id: "quality", title: "Качество" },
+    { id: "history", title: "История" }
+  ];
+
+  async function uploadSelectedFile(file: File | undefined): Promise<void> {
+    if (!file) {
+      return;
+    }
+
+    setIsDrawingBusy(true);
+
+    try {
+      await onUploadDrawingImage(part, file);
+    } finally {
+      setIsDrawingBusy(false);
+    }
+  }
+
+  async function removeDrawing(): Promise<void> {
+    setIsDrawingBusy(true);
+
+    try {
+      await onRemoveDrawingImage(part);
+    } finally {
+      setIsDrawingBusy(false);
+    }
+  }
+
+  return (
+    <ModalBackdrop onClose={onClose}>
+      <article className="part-details-modal" role="dialog" aria-modal="true">
+        <header className="part-details-modal__header">
+          <div className="part-details-modal__title-block">
+            <span className="part-details-modal__eyebrow">MDM-карточка детали</span>
+            <h2>{part.name}</h2>
+            <div className="part-details-modal__meta">
+              <b>{part.code}</b>
+              <span>{part.category}</span>
+              <span>{part.material}</span>
+              <span className={stockStatus.className}>{stockStatus.title}</span>
+            </div>
+          </div>
+
+          <div className="part-details-modal__actions">
+            {hasAdminAccess(role) && (
+              <button className="secondary-button" type="button" onClick={onEdit}>
+                Редактировать
+              </button>
+            )}
+            <button className="modal-close" type="button" onClick={onClose}>
+              ×
+            </button>
+          </div>
+        </header>
+
+        <section className="part-details-modal__summary">
+          <div className="part-detail-summary-card">
+            <span>Остаток</span>
+            <strong>
+              {part.stock.toLocaleString("ru-RU")} {part.unit}
+            </strong>
+            <p>Минимум: {part.minStock.toLocaleString("ru-RU")} {part.unit}</p>
+          </div>
+          <div className="part-detail-summary-card">
+            <span>Закупки</span>
+            <strong>{partPurchases.length.toLocaleString("ru-RU")}</strong>
+            <p>{formatMoney(purchaseTotal)}</p>
+          </div>
+          <div className="part-detail-summary-card">
+            <span>Качество данных</span>
+            <strong>{qualityScore}%</strong>
+            <p>{qualityChecks.filter((item) => !item.ok).length === 0 ? "Замечаний нет" : "Есть замечания"}</p>
+          </div>
+          <div className="part-detail-summary-card">
+            <span>Чертеж</span>
+            <strong>{drawingImage ? "Есть" : "Нет"}</strong>
+            <p>{part.drawing}</p>
+          </div>
+        </section>
+
+        <nav className="part-details-tabs" aria-label="Разделы карточки детали">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={
+                activeTab === tab.id
+                  ? "part-details-tabs__button part-details-tabs__button--active"
+                  : "part-details-tabs__button"
+              }
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.title}
+            </button>
+          ))}
+        </nav>
+
+        <section className="part-details-modal__body">
+          {activeTab === "passport" && (
+            <div className="part-detail-grid">
+              <DetailField label="Код" value={part.code} />
+              <DetailField label="Наименование" value={part.name} />
+              <DetailField label="Категория" value={part.category} />
+              <DetailField label="Материал" value={part.material} />
+              <DetailField label="Поставщик" value={part.supplier} />
+              <DetailField label="Единица измерения" value={part.unit} />
+              <DetailField label="Вес" value={`${part.weight.toLocaleString("ru-RU")} кг`} />
+              <DetailField label="Номер чертежа" value={part.drawing} />
+            </div>
+          )}
+
+          {activeTab === "warehouse" && (
+            <div className="part-detail-section">
+              <div className="part-detail-section__header">
+                <div>
+                  <p>Складской контроль</p>
+                  <h3>{stockStatus.title}</h3>
+                </div>
+                <span className={stockStatus.className}>{stockStatus.title}</span>
+              </div>
+              <div className="part-detail-stock-panel">
+                <div className="part-detail-stock-panel__numbers">
+                  <strong>{part.stock.toLocaleString("ru-RU")}</strong>
+                  <span>/ {part.minStock.toLocaleString("ru-RU")} {part.unit}</span>
+                </div>
+                <div className="progress part-detail-stock-panel__progress">
+                  <div
+                    className={
+                      stockStatus.tone === "danger"
+                        ? "progress__bar progress__bar--danger"
+                        : stockStatus.tone === "warning"
+                          ? "progress__bar progress__bar--warning"
+                          : "progress__bar"
+                    }
+                    style={{ width: `${stockProgress}%` }}
+                  />
+                </div>
+                <p>
+                  {part.stock < part.minStock
+                    ? `Нужно пополнить минимум на ${(part.minStock - part.stock).toLocaleString("ru-RU")} ${part.unit}`
+                    : "Остаток соответствует установленному минимуму"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "purchases" && (
+            <div className="part-detail-section">
+              <div className="part-detail-section__header">
+                <div>
+                  <p>Закупочная история</p>
+                  <h3>{partPurchases.length.toLocaleString("ru-RU")} операций</h3>
+                </div>
+                <span>{purchaseQuantity.toLocaleString("ru-RU")} {part.unit}</span>
+              </div>
+
+              {partPurchases.length === 0 ? (
+                <div className="empty-state">По этой детали пока нет закупочных операций.</div>
+              ) : (
+                <div className="part-detail-table-wrap">
+                  <table className="data-table part-detail-table">
+                    <thead>
+                      <tr>
+                        <th>Дата</th>
+                        <th>Количество</th>
+                        <th>Сумма</th>
+                        <th>Ответственный</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {partPurchases.slice(0, 8).map((purchase) => (
+                        <tr key={purchase.id}>
+                          <td>{formatDateTime(purchase.date)}</td>
+                          <td>{purchase.quantity.toLocaleString("ru-RU")}</td>
+                          <td>{formatMoney(purchase.price)}</td>
+                          <td>{purchase.employee}</td>
+                          <td>
+                            <button
+                              className="secondary-button"
+                              type="button"
+                              onClick={() => onOpenPurchase(purchase)}
+                            >
+                              Открыть
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "drawing" && (
+            <div className="part-detail-drawing-layout">
+              <div className="part-detail-drawing-preview">
+                {drawingImage ? (
+                  <img src={drawingImage} alt={`Чертеж ${part.drawing}`} />
+                ) : (
+                  <div className="part-detail-drawing-preview__empty">
+                    <span>Файл чертежа не загружен</span>
+                    <p>{part.drawing}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="part-detail-drawing-info">
+                <DetailField label="Обозначение" value={part.drawing} />
+                <DetailField label="Статус файла" value={drawingImage ? "Загружен" : "Не загружен"} />
+                <DetailField label="Материал" value={part.material} />
+
+                {hasAdminAccess(role) && (
+                  <div className="part-detail-drawing-actions">
+                    <label className="secondary-button part-detail-upload-button">
+                      {isDrawingBusy ? "Загрузка..." : "Загрузить файл"}
+                      <input
+                        accept="image/*"
+                        disabled={isDrawingBusy}
+                        type="file"
+                        onChange={(event) => {
+                          void uploadSelectedFile(event.target.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {drawingImage && (
+                      <button
+                        className="danger-button"
+                        disabled={isDrawingBusy}
+                        type="button"
+                        onClick={() => void removeDrawing()}
+                      >
+                        Удалить файл
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "quality" && (
+            <div className="part-detail-quality-list">
+              {qualityChecks.map((check) => (
+                <div
+                  key={check.label}
+                  className={
+                    check.ok
+                      ? "part-detail-quality-item part-detail-quality-item--ok"
+                      : "part-detail-quality-item part-detail-quality-item--problem"
+                  }
+                >
+                  <div>
+                    <b>{check.label}</b>
+                    <span>{check.text}</span>
+                  </div>
+                  <strong>{check.ok ? "OK" : "Проверить"}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === "history" && (
+            <div className="part-detail-history-list">
+              {relatedHistory.length === 0 ? (
+                <div className="empty-state">Связанных записей журнала по детали не найдено.</div>
+              ) : (
+                relatedHistory.map((entry) => (
+                  <div key={entry.id} className="part-detail-history-item">
+                    <span>{formatDateTime(entry.createdAt)}</span>
+                    <b>{entry.action}</b>
+                    <p>{entry.description}</p>
+                    <small>{entry.user} · {entry.section}</small>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </section>
+      </article>
+    </ModalBackdrop>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="detail-field">
+      <span>{label}</span>
+      <strong>{value || "—"}</strong>
     </div>
   );
 }
