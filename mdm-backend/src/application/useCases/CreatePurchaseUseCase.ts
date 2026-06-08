@@ -40,18 +40,18 @@ export class CreatePurchaseUseCase {
       throw new Error("Деталь не найдена в справочнике");
     }
 
-    const purchase = await this.purchaseRepository.create({
-      rawName: `${part.name} · ${input.quantity} ${part.unit}`,
-      partId: part.id,
-      quantity: input.quantity,
-      price: input.price,
-      supplier: part.supplier,
-      employee,
-      date: new Date().toISOString().slice(0, 10)
-    });
-
-    await this.partRepository.increaseStock(part.id, input.quantity);
-
-    return purchase;
+    return this.purchaseRepository.createAndIncreasePartStock(
+      {
+        rawName: `${part.name} · ${input.quantity} ${part.unit}`,
+        partId: part.id,
+        quantity: input.quantity,
+        price: input.price,
+        supplier: part.supplier,
+        employee,
+        date: new Date().toISOString().slice(0, 10)
+      },
+      part.id,
+      input.quantity
+    );
   }
 }

@@ -86,4 +86,66 @@ export class PostgresPurchaseRepository implements PurchaseRepository {
 
     return mapPurchase(result.rows[0]);
   }
+
+  async createAndIncreasePartStock(
+    purchase: CreatePurchaseRecord,
+    partId: number,
+    quantity: number
+  ): Promise<Purchase> {
+    const client = await postgresPool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      const purchaseResult = await client.query<PurchaseRow>(
+        `
+          INSERT INTO purchases
+            (raw_name, part_id, quantity, price, supplier, employee, date)
+          VALUES
+            ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING
+            id,
+            raw_name,
+            part_id,
+            quantity,
+            price,
+            supplier,
+            employee,
+            date
+        `,
+        [
+          purchase.rawName,
+          purchase.partId,
+          purchase.quantity,
+          purchase.price,
+          purchase.supplier,
+          purchase.employee,
+          purchase.date
+        ]
+      );
+
+      const stockResult = await client.query(
+        `
+          UPDATE parts
+          SET stock = stock + $1
+          WHERE id = $2
+          RETURNING id
+        `,
+        [quantity, partId]
+      );
+
+      if ((stockResult.rowCount ?? 0) === 0) {
+        throw new Error("Деталь не найдена");
+      }
+
+      await client.query("COMMIT");
+
+      return mapPurchase(purchaseResult.rows[0]);
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
