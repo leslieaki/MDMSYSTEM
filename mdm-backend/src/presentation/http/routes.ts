@@ -1,5 +1,6 @@
 import express, { Router } from "express";
 import type { ErrorRequestHandler } from "express";
+import { ClearMissingPartDrawingFileUseCase } from "../../application/useCases/ClearMissingPartDrawingFileUseCase";
 import { ClearOperationLogsUseCase } from "../../application/useCases/ClearOperationLogsUseCase";
 import { ChangeAuthUserPasswordUseCase } from "../../application/useCases/ChangeAuthUserPasswordUseCase";
 import { CreateAuthUserUseCase } from "../../application/useCases/CreateAuthUserUseCase";
@@ -15,6 +16,7 @@ import { GetAuthUsersUseCase } from "../../application/useCases/GetAuthUsersUseC
 import { GetOperationLogsUseCase } from "../../application/useCases/GetOperationLogsUseCase";
 import { GetPartDrawingFileUseCase } from "../../application/useCases/GetPartDrawingFileUseCase";
 import { GetPartDrawingFilesUseCase } from "../../application/useCases/GetPartDrawingFilesUseCase";
+import { GetPartDrawingStorageIssuesUseCase } from "../../application/useCases/GetPartDrawingStorageIssuesUseCase";
 import { GetPartNomenclatureUseCase } from "../../application/useCases/GetPartNomenclatureUseCase";
 import { GetPartsUseCase } from "../../application/useCases/GetPartsUseCase";
 import { GetPurchasesUseCase } from "../../application/useCases/GetPurchasesUseCase";
@@ -34,6 +36,7 @@ import { PostgresPartNomenclatureRepository } from "../../infrastructure/reposit
 import { PostgresPartRepository } from "../../infrastructure/repositories/PostgresPartRepository";
 import { PostgresPurchaseRepository } from "../../infrastructure/repositories/PostgresPurchaseRepository";
 import { PostgresReferenceRepository } from "../../infrastructure/repositories/PostgresReferenceRepository";
+import { PostgresStockReportRepository } from "../../infrastructure/repositories/PostgresStockReportRepository";
 import { LocalDrawingFileStorage } from "../../infrastructure/storage/LocalDrawingFileStorage";
 import { createAuditLogMiddleware } from "./audit";
 import { createAuthMiddleware, requireRole } from "./auth";
@@ -57,6 +60,7 @@ export function createApiRouter(): Router {
   const referenceRepository = new PostgresReferenceRepository();
   const partDrawingFileRepository = new PostgresPartDrawingFileRepository();
   const operationLogRepository = new PostgresOperationLogRepository();
+  const stockReportRepository = new PostgresStockReportRepository();
   const drawingFileStorage = new LocalDrawingFileStorage();
 
   const authenticate = createAuthMiddleware(authUserRepository);
@@ -121,7 +125,9 @@ export function createApiRouter(): Router {
     new DeleteReferenceItemUseCase(referenceRepository),
   );
 
-  const reportsController = new ReportsController(new GetStockReportUseCase());
+  const reportsController = new ReportsController(
+    new GetStockReportUseCase(stockReportRepository),
+  );
 
   const operationLogsController = new OperationLogsController(
     new GetOperationLogsUseCase(operationLogRepository),
@@ -142,6 +148,15 @@ export function createApiRouter(): Router {
       drawingFileStorage,
     ),
     new DeletePartDrawingFileUseCase(
+      partRepository,
+      partDrawingFileRepository,
+      drawingFileStorage,
+    ),
+    new GetPartDrawingStorageIssuesUseCase(
+      partDrawingFileRepository,
+      drawingFileStorage,
+    ),
+    new ClearMissingPartDrawingFileUseCase(
       partRepository,
       partDrawingFileRepository,
       drawingFileStorage,
@@ -323,6 +338,23 @@ export function createApiRouter(): Router {
     "/parts/drawing-files",
     authenticate,
     partDrawingFilesController.getAll,
+  );
+  router.get(
+    "/parts/drawing-storage-issues",
+    authenticate,
+    requireAdmin,
+    partDrawingFilesController.getStorageIssues,
+  );
+  router.delete(
+    "/parts/:id/drawing-file/missing-record",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Очистка записи чертежа",
+      "Чертежи",
+      "Удалена битая запись файла чертежа"
+    ),
+    partDrawingFilesController.clearMissingRecord,
   );
   router.get(
     "/parts/drawing-images",

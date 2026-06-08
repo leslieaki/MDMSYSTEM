@@ -186,6 +186,18 @@ export type DeleteDrawingImageResult = {
   deletedFile: PartDrawingFile | null;
 };
 
+export type PartDrawingStorageIssue = {
+  type: "missing-file";
+  partId: number;
+  fileId: number;
+  originalName: string;
+  storedName: string;
+  storagePath: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  message: string;
+};
+
 export type StockReportStatus = "Норма" | "Низкий остаток" | "Дефицит";
 
 export type StockReportItem = {
@@ -424,12 +436,16 @@ export async function getPartDrawingFiles(): Promise<PartDrawingFilesMap> {
   );
 }
 
-async function fetchDrawingImageBlobUrl(url: string): Promise<string> {
+async function fetchDrawingImageBlobUrl(url: string): Promise<string | null> {
   const response = await fetch(url, {
     headers: createRequestHeaders()
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+
     let message = "Ошибка получения фото чертежа";
 
     try {
@@ -453,11 +469,11 @@ export async function getDrawingImages(): Promise<DrawingImagesMap> {
     Object.entries(files).map(async ([partId, file]) => {
       const objectUrl = await fetchDrawingImageBlobUrl(file.url);
 
-      return [partId, objectUrl] as const;
+      return objectUrl ? ([partId, objectUrl] as const) : null;
     }),
   );
 
-  return Object.fromEntries(entries);
+  return Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => Boolean(entry)));
 }
 
 export async function uploadDrawingImageRequest(
@@ -502,6 +518,21 @@ export function deleteDrawingImageRequest(
   return request<DeleteDrawingImageResult>(`/parts/${partId}/drawing-file`, {
     method: "DELETE",
   });
+}
+
+export function getDrawingStorageIssuesRequest(): Promise<PartDrawingStorageIssue[]> {
+  return request<PartDrawingStorageIssue[]>("/parts/drawing-storage-issues");
+}
+
+export function clearMissingDrawingFileRecordRequest(
+  partId: number,
+): Promise<DeleteDrawingImageResult> {
+  return request<DeleteDrawingImageResult>(
+    `/parts/${partId}/drawing-file/missing-record`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export function getStockReport(): Promise<StockReportItem[]> {
