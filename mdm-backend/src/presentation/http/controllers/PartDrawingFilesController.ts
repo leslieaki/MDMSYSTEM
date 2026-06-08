@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
+import type { ClearMissingPartDrawingFileUseCase } from "../../../application/useCases/ClearMissingPartDrawingFileUseCase";
 import type { DeletePartDrawingFileUseCase } from "../../../application/useCases/DeletePartDrawingFileUseCase";
 import type { GetPartDrawingFileUseCase } from "../../../application/useCases/GetPartDrawingFileUseCase";
 import type { GetPartDrawingFilesUseCase } from "../../../application/useCases/GetPartDrawingFilesUseCase";
+import type { GetPartDrawingStorageIssuesUseCase } from "../../../application/useCases/GetPartDrawingStorageIssuesUseCase";
+import type { PartDrawingStorageIssue } from "../../../application/useCases/GetPartDrawingStorageIssuesUseCase";
 import type { UploadPartDrawingFileUseCase } from "../../../application/useCases/UploadPartDrawingFileUseCase";
 import type { PartDrawingFile } from "../../../domain/entities/PartDrawingFile";
 
@@ -15,6 +18,8 @@ type DrawingFileResponse = {
   uploadedAt: string;
   url: string;
 };
+
+type DrawingStorageIssueResponse = PartDrawingStorageIssue;
 
 function parsePartId(value: string): number {
   const partId = Number(value);
@@ -66,7 +71,9 @@ export class PartDrawingFilesController {
     private readonly getPartDrawingFilesUseCase: GetPartDrawingFilesUseCase,
     private readonly getPartDrawingFileUseCase: GetPartDrawingFileUseCase,
     private readonly uploadPartDrawingFileUseCase: UploadPartDrawingFileUseCase,
-    private readonly deletePartDrawingFileUseCase: DeletePartDrawingFileUseCase
+    private readonly deletePartDrawingFileUseCase: DeletePartDrawingFileUseCase,
+    private readonly getPartDrawingStorageIssuesUseCase: GetPartDrawingStorageIssuesUseCase,
+    private readonly clearMissingPartDrawingFileUseCase: ClearMissingPartDrawingFileUseCase
   ) {}
 
   getAll = async (_request: Request, response: Response): Promise<void> => {
@@ -112,6 +119,55 @@ export class PartDrawingFilesController {
           error instanceof Error
             ? error.message
             : "Ошибка получения фото чертежей"
+      });
+    }
+  };
+
+  getStorageIssues = async (
+    _request: Request,
+    response: Response
+  ): Promise<void> => {
+    try {
+      const issues = await this.getPartDrawingStorageIssuesUseCase.execute();
+      const result: DrawingStorageIssueResponse[] = issues;
+
+      response.json(result);
+    } catch (error) {
+      console.error(error);
+
+      response.status(500).json({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Ошибка проверки хранилища чертежей"
+      });
+    }
+  };
+
+  clearMissingRecord = async (
+    request: Request,
+    response: Response
+  ): Promise<void> => {
+    try {
+      const partId = parsePartId(request.params.id);
+      const result =
+        await this.clearMissingPartDrawingFileUseCase.execute(partId);
+
+      response.json({
+        partId: result.partId,
+        deleted: result.deleted,
+        deletedFile: result.deletedFile
+          ? mapFileResponse(result.deletedFile)
+          : null
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Ошибка очистки записи файла чертежа";
+
+      response.status(message.includes("не найд") ? 404 : 400).json({
+        message
       });
     }
   };
@@ -181,7 +237,8 @@ export class PartDrawingFilesController {
   remove = async (request: Request, response: Response): Promise<void> => {
     try {
       const partId = parsePartId(request.params.id);
-      const deletedFile = await this.deletePartDrawingFileUseCase.execute(partId);
+      const deletedFile =
+        await this.deletePartDrawingFileUseCase.execute(partId);
 
       response.json({
         partId,

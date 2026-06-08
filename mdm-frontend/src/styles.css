@@ -3466,3 +3466,130 @@ textarea:focus-visible,
     border-radius: 22px;
   }
 }
+
+.storage__panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid rgba(197, 48, 48, 0.22);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(197, 48, 48, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.storage__header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.storage__header p {
+  margin: 0 0 6px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.storage__header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.storage__header span {
+  display: inline-flex;
+  min-width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(197, 48, 48, 0.12);
+  color: var(--danger);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.storage__list {
+  display: grid;
+  gap: 10px;
+}
+
+.storage__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(197, 48, 48, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.storage__item div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.storage__item b,
+.storage__item span,
+.storage__item small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.storage__item b {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.storage__item span {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.storage__item small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.storage__notice {
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+@media (max-width: 768px) {
+  .storage__header,
+  .storage__item {
+    grid-template-columns: 1fr;
+  }
+
+  .storage__header {
+    display: grid;
+  }
+
+  .storage__header span {
+    width: fit-content;
+  }
+
+  .storage__item .danger-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

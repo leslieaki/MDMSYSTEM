@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   changeAuthUserPasswordRequest,
+  clearMissingDrawingFileRecordRequest,
   clearAuthSession,
   clearOperationLogsRequest,
   createAuthUserRequest,
@@ -11,6 +12,7 @@ import {
   createPurchaseRequest,
   createReferenceItemRequest,
   deleteDrawingImageRequest,
+  getDrawingStorageIssuesRequest,
   deletePartNomenclatureRequest,
   deleteReferenceItemRequest,
   getAuthUsers,
@@ -37,6 +39,7 @@ import type {
   AuthSession,
   AuthUserRole,
   DrawingImagesMap,
+  PartDrawingStorageIssue,
   Employee,
   ManagedAuthUser,
   Part,
@@ -754,6 +757,11 @@ function App() {
     useState<OperationLogEntry[]>([]);
   const [drawingImages, setDrawingImages] =
     useState<DrawingImagesMap>({});
+  const [drawingStorageIssues, setDrawingStorageIssues] = useState<
+    PartDrawingStorageIssue[]
+  >([]);
+  const [isCheckingDrawingStorage, setIsCheckingDrawingStorage] =
+    useState(false);
 
   const currentEmployee = employees.find(
     (employee) => String(employee.id) === currentEmployeeId
@@ -897,7 +905,8 @@ function App() {
       "Удаление чертежа",
       "Создание пользователя",
       "Редактирование пользователя",
-      "Смена пароля пользователя"
+      "Смена пароля пользователя",
+      "Очистка записи чертежа"
     ]);
 
     if (serverAuditedActions.has(action)) {
@@ -1541,6 +1550,9 @@ function App() {
         ...currentImages,
         [String(part.id)]: result.url
       }));
+      setDrawingStorageIssues((currentIssues) =>
+        currentIssues.filter((issue) => issue.partId !== part.id)
+      );
 
       addOperationLog(
         "Загрузка чертежа",
@@ -1571,6 +1583,75 @@ function App() {
     }
   }
 
+  async function checkDrawingStorageIssues(): Promise<void> {
+    try {
+      setActionError("");
+
+      if (!hasAdminAccess(role)) {
+        throw new Error("Проверка хранилища доступна только администратору");
+      }
+
+      setIsCheckingDrawingStorage(true);
+
+      const issues = await getDrawingStorageIssuesRequest();
+      setDrawingStorageIssues(issues);
+
+      addOperationLog(
+        "Проверка хранилища",
+        "Чертежи",
+        `Проверено хранилище чертежей, проблем: ${issues.length}`
+      );
+    } catch (requestError) {
+      setActionError(
+        getErrorMessage(requestError, "Ошибка проверки хранилища чертежей")
+      );
+    } finally {
+      setIsCheckingDrawingStorage(false);
+    }
+  }
+
+  async function clearMissingDrawingFileRecord(partId: number): Promise<void> {
+    try {
+      setActionError("");
+
+      if (!hasAdminAccess(role)) {
+        throw new Error("Очистка записей чертежей доступна только администратору");
+      }
+
+      const part = parts.find((currentPart) => currentPart.id === partId);
+      const confirmed = window.confirm(
+        "Очистить битую запись о файле чертежа? Физический файл отсутствует, будет удалена только запись из базы."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      await clearMissingDrawingFileRecordRequest(partId);
+
+      setDrawingStorageIssues((currentIssues) =>
+        currentIssues.filter((issue) => issue.partId !== partId)
+      );
+      setDrawingImages((currentImages) => {
+        const nextImages = { ...currentImages };
+        delete nextImages[String(partId)];
+        return nextImages;
+      });
+
+      addOperationLog(
+        "Очистка записи чертежа",
+        "Чертежи",
+        part
+          ? `Очищена битая запись файла чертежа для ${part.code} — ${part.name}`
+          : `Очищена битая запись файла чертежа для детали ID ${partId}`
+      );
+    } catch (requestError) {
+      setActionError(
+        getErrorMessage(requestError, "Ошибка очистки записи файла чертежа")
+      );
+    }
+  }
+
   async function removeDrawingImage(part: Part): Promise<void> {
     try {
       setActionError("");
@@ -1592,6 +1673,9 @@ function App() {
         delete nextImages[String(part.id)];
         return nextImages;
       });
+      setDrawingStorageIssues((currentIssues) =>
+        currentIssues.filter((issue) => issue.partId !== part.id)
+      );
 
       addOperationLog(
         "Удаление чертежа",
@@ -1646,6 +1730,7 @@ function App() {
     setEmployees([]);
     setReferences(emptyReferences);
     setDrawingImages({});
+    setDrawingStorageIssues([]);
     setOperationLog([]);
     setCurrentEmployeeId("");
     setPage("dashboard");
@@ -1734,6 +1819,7 @@ function App() {
       setEmployees([]);
       setReferences(emptyReferences);
       setDrawingImages({});
+    setDrawingStorageIssues([]);
       setOperationLog([]);
     } finally {
       setIsLoading(false);
@@ -2250,8 +2336,12 @@ function App() {
         {activePage === "drawings" && (
           <DrawingsPage
             drawingImages={drawingImages}
+            isCheckingStorage={isCheckingDrawingStorage}
             parts={parts}
             role={role}
+            storageIssues={drawingStorageIssues}
+            onCheckStorage={checkDrawingStorageIssues}
+            onClearMissingDrawingRecord={clearMissingDrawingFileRecord}
             onOpenPart={openPartInfo}
             onRemoveDrawingImage={removeDrawingImage}
             onUploadDrawingImage={uploadDrawingImage}
@@ -5538,20 +5628,31 @@ function EmployeesPage({
 
 function DrawingsPage({
   drawingImages,
+  isCheckingStorage,
   parts,
   role,
+  storageIssues,
+  onCheckStorage,
+  onClearMissingDrawingRecord,
   onOpenPart,
   onRemoveDrawingImage,
   onUploadDrawingImage
 }: {
   drawingImages: DrawingImagesMap;
+  isCheckingStorage: boolean;
   parts: Part[];
   role: Role;
+  storageIssues: PartDrawingStorageIssue[];
+  onCheckStorage: () => void;
+  onClearMissingDrawingRecord: (partId: number) => void;
   onOpenPart: (part: Part) => void;
   onRemoveDrawingImage: (part: Part) => void;
   onUploadDrawingImage: (part: Part, file: File) => void;
 }) {
   const canManageDrawings = hasAdminAccess(role);
+  const partById = useMemo(() => {
+    return new Map(parts.map((part) => [part.id, part]));
+  }, [parts]);
 
   return (
     <section className="content-card">
@@ -5564,7 +5665,60 @@ function DrawingsPage({
             фото доступны администратору.
           </span>
         </div>
+
+        {canManageDrawings && (
+          <button
+            className="secondary-button"
+            disabled={isCheckingStorage}
+            type="button"
+            onClick={onCheckStorage}
+          >
+            {isCheckingStorage ? "Проверка..." : "Проверить хранилище"}
+          </button>
+        )}
       </div>
+
+      {canManageDrawings && storageIssues.length > 0 && (
+        <section className="storage__panel">
+          <div className="storage__header">
+            <div>
+              <p>Контроль хранилища</p>
+              <h3>Найдены битые записи чертежей</h3>
+            </div>
+            <span>{storageIssues.length}</span>
+          </div>
+
+          <div className="storage__list">
+            {storageIssues.map((issue) => {
+              const part = partById.get(issue.partId);
+
+              return (
+                <article className="storage__item" key={`${issue.partId}-${issue.fileId}`}>
+                  <div>
+                    <b>{part ? `${part.code} — ${part.name}` : `Деталь ID ${issue.partId}`}</b>
+                    <span>{issue.message}</span>
+                    <small>{issue.originalName} · {issue.storedName}</small>
+                  </div>
+
+                  <button
+                    className="danger-button"
+                    type="button"
+                    onClick={() => onClearMissingDrawingRecord(issue.partId)}
+                  >
+                    Очистить запись
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {canManageDrawings && storageIssues.length === 0 && (
+        <div className="storage__notice">
+          Проверка хранилища покажет записи, у которых есть строка в базе, но нет файла на сервере.
+        </div>
+      )}
 
       <div className="drawings-grid" style={{ alignItems: "stretch" }}>
         {parts.map((part) => {
