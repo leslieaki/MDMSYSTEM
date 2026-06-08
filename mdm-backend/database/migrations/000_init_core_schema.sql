@@ -1,0 +1,39 @@
+CREATE TABLE IF NOT EXISTS parts (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(120) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  category VARCHAR(255) NOT NULL,
+  material VARCHAR(255) NOT NULL,
+  unit VARCHAR(50) NOT NULL,
+  weight NUMERIC(12, 3) NOT NULL DEFAULT 0 CHECK (weight >= 0),
+  stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+  min_stock INTEGER NOT NULL DEFAULT 0 CHECK (min_stock >= 0),
+  drawing VARCHAR(255) NOT NULL,
+  supplier VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS purchases (
+  id SERIAL PRIMARY KEY,
+  raw_name VARCHAR(255) NOT NULL,
+  part_id INTEGER NOT NULL REFERENCES parts(id) ON DELETE RESTRICT,
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  price NUMERIC(12, 2) NOT NULL CHECK (price >= 0),
+  supplier VARCHAR(255) NOT NULL,
+  employee VARCHAR(255) NOT NULL,
+  date DATE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS departments (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  manager VARCHAR(255) NOT NULL,
+  employee_count INTEGER NOT NULL DEFAULT 0 CHECK (employee_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  position VARCHAR(255) NOT NULL,
+  department VARCHAR(255) NOT NULL,
+  role VARCHAR(255) NOT NULL
+);
