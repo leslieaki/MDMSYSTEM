@@ -11,6 +11,7 @@ import {
   createPartRequest,
   createPurchaseRequest,
   createReferenceItemRequest,
+  createStockMovementRequest,
   deleteDrawingImageRequest,
   getDrawingStorageIssuesRequest,
   deletePartNomenclatureRequest,
@@ -25,6 +26,7 @@ import {
   getPurchases,
   getReferences,
   getStockReport,
+  getStockMovements,
   getStoredAuthSession,
   loginRequest,
   storeAuthSession,
@@ -47,6 +49,8 @@ import type {
   Purchase,
   ReferenceItem,
   ReferenceKind,
+  StockMovement,
+  StockMovementType,
   StockReportItem
 } from "./api";
 import "./styles.css";
@@ -55,6 +59,7 @@ type Page =
   | "dashboard"
   | "parts"
   | "purchases"
+  | "movements"
   | "warehouse"
   | "reports"
   | "employees"
@@ -102,6 +107,15 @@ type PurchaseForm = {
   quantity: string;
   price: string;
   employee: string;
+};
+
+type StockMovementForm = {
+  partId: string;
+  type: StockMovementType;
+  quantity: string;
+  fromLocation: string;
+  toLocation: string;
+  reason: string;
 };
 
 type PartForm = {
@@ -239,6 +253,12 @@ const menu: MenuItem[] = [
     group: "operations"
   },
   {
+    id: "movements",
+    title: "Движения",
+    subtitle: "Приход, списание, перемещение",
+    group: "operations"
+  },
+  {
     id: "employees",
     title: "Сотрудники",
     subtitle: "Подразделения и роли",
@@ -264,6 +284,23 @@ const initialPurchaseForm: PurchaseForm = {
   quantity: "",
   price: "",
   employee: ""
+};
+
+const initialStockMovementForm: StockMovementForm = {
+  partId: "",
+  type: "receipt",
+  quantity: "",
+  fromLocation: "",
+  toLocation: "Основной склад",
+  reason: ""
+};
+
+const stockMovementTypeLabels: Record<StockMovementType, string> = {
+  receipt: "Приход",
+  write_off: "Списание",
+  transfer: "Перемещение",
+  inventory: "Инвентаризация",
+  adjustment: "Корректировка"
 };
 
 const initialPartForm: PartForm = {
@@ -317,6 +354,7 @@ function isValidPage(value: string | null): value is Page {
     value === "dashboard" ||
     value === "parts" ||
     value === "purchases" ||
+    value === "movements" ||
     value === "warehouse" ||
     value === "reports" ||
     value === "employees" ||
@@ -448,6 +486,7 @@ function getPageTitle(page: Page): string {
     dashboard: "Центр контроля",
     parts: "Справочник деталей",
     purchases: "Закупки",
+    movements: "Складские движения",
     warehouse: "Складские остатки",
     reports: "Отчеты",
     employees: "Сотрудники и подразделения",
@@ -466,6 +505,7 @@ function getPageDescription(page: Page): string {
     dashboard: "Оперативный контроль качества мастер-данных, складских рисков и последних действий",
     parts: "Реестр утвержденных карточек деталей с привязкой к номенклатуре, поставщикам и чертежам",
     purchases: "Рабочий журнал снабжения на основе утвержденных карточек деталей",
+    movements: "Операции прихода, списания, перемещения, инвентаризации и корректировки остатков",
     warehouse: "Контроль остатков, минимальных запасов и позиций для пополнения",
     reports: "Складская аналитика и выгрузка данных для контроля MDM-процессов",
     employees: "Подразделения, роли и ответственные сотрудники предприятия",
@@ -697,6 +737,7 @@ function App() {
     []
   );
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [stockReport, setStockReport] = useState<StockReportItem[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -716,6 +757,8 @@ function App() {
 
   const [purchaseForm, setPurchaseForm] =
     useState<PurchaseForm>(initialPurchaseForm);
+  const [stockMovementForm, setStockMovementForm] =
+    useState<StockMovementForm>(initialStockMovementForm);
 
   const [partForm, setPartForm] = useState<PartForm>(initialPartForm);
   const [partFormInitial, setPartFormInitial] =
@@ -831,6 +874,10 @@ function App() {
     (part) => String(part.id) === purchaseForm.partId
   );
 
+  const selectedStockMovementPart = parts.find(
+    (part) => String(part.id) === stockMovementForm.partId
+  );
+
   const partDetails = useMemo(() => {
     if (partDetailsId === null) {
       return null;
@@ -893,6 +940,7 @@ function App() {
   ): void {
     const serverAuditedActions = new Set([
       "Создание закупки",
+      "Создание складского движения",
       "Создание детали",
       "Редактирование детали",
       "Создание номенклатуры",
@@ -1104,6 +1152,16 @@ function App() {
 
   function updatePurchaseForm(field: keyof PurchaseForm, value: string) {
     setPurchaseForm((currentForm) => ({
+      ...currentForm,
+      [field]: value
+    }));
+  }
+
+  function updateStockMovementForm(
+    field: keyof StockMovementForm,
+    value: string
+  ) {
+    setStockMovementForm((currentForm) => ({
       ...currentForm,
       [field]: value
     }));
@@ -1721,6 +1779,7 @@ function App() {
     setParts([]);
     setPartNomenclature([]);
     setPurchases([]);
+    setStockMovements([]);
     setStockReport([]);
     setDepartments([]);
     setEmployees([]);
@@ -1741,6 +1800,7 @@ function App() {
         partsFromApi,
         partNomenclatureFromApi,
         purchasesFromApi,
+        stockMovementsFromApi,
         departmentsFromApi,
         employeesFromApi,
         categoriesFromApi,
@@ -1754,6 +1814,7 @@ function App() {
         getParts(),
         getPartNomenclature(),
         getPurchases(),
+        getStockMovements(),
         getDepartments(),
         getEmployees(),
         getReferences("part-categories"),
@@ -1775,6 +1836,7 @@ function App() {
       setParts(partsFromApi);
       setPartNomenclature(partNomenclatureFromApi);
       setPurchases(purchasesFromApi);
+      setStockMovements(stockMovementsFromApi);
       setStockReport(stockReportFromApi);
       setDepartments(departmentsFromApi);
       setEmployees(employeesFromApi);
@@ -1804,12 +1866,20 @@ function App() {
             ?.id.toString() || partsFromApi[0]?.id.toString() || "",
         employee: authenticatedUserName
       }));
+
+      setStockMovementForm((currentForm) => ({
+        ...currentForm,
+        partId:
+          partsFromApi.find((part) => String(part.id) === currentForm.partId)
+            ?.id.toString() || partsFromApi[0]?.id.toString() || ""
+      }));
     } catch (requestError) {
       setLoadError(getErrorMessage(requestError, "Ошибка загрузки данных"));
 
       setParts([]);
       setPartNomenclature([]);
       setPurchases([]);
+      setStockMovements([]);
       setStockReport([]);
       setDepartments([]);
       setEmployees([]);
@@ -1868,6 +1938,61 @@ function App() {
       setPage("purchases");
     } catch (requestError) {
       setActionError(getErrorMessage(requestError, "Ошибка создания закупки"));
+    }
+  }
+
+  async function createStockMovement(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      clearActionError();
+
+      if (!selectedStockMovementPart) {
+        throw new Error("Выберите деталь из справочника");
+      }
+
+      const quantity = Number(stockMovementForm.quantity);
+
+      if (!Number.isInteger(quantity)) {
+        throw new Error("Количество должно быть целым числом");
+      }
+
+      if (stockMovementForm.type === "inventory") {
+        if (quantity < 0) {
+          throw new Error("Остаток по инвентаризации не может быть отрицательным");
+        }
+      } else if (quantity <= 0) {
+        throw new Error("Количество должно быть больше нуля");
+      }
+
+      const movement = await createStockMovementRequest({
+        partId: selectedStockMovementPart.id,
+        type: stockMovementForm.type,
+        quantity,
+        fromLocation: stockMovementForm.fromLocation,
+        toLocation: stockMovementForm.toLocation,
+        reason: stockMovementForm.reason
+      });
+
+      addOperationLog(
+        "Создание складского движения",
+        "Склад",
+        stockMovementTypeLabels[movement.type] + ": " + movement.partCode + " — " + movement.partName + ", " + movement.stockBefore + " → " + movement.stockAfter
+      );
+
+      await loadData();
+
+      setStockMovementForm((currentForm) => ({
+        ...currentForm,
+        quantity: "",
+        reason: ""
+      }));
+
+      setPage("movements");
+    } catch (requestError) {
+      setActionError(
+        getErrorMessage(requestError, "Ошибка создания складского движения")
+      );
     }
   }
 
@@ -2278,6 +2403,26 @@ function App() {
             }}
             onOpenPurchase={openPurchaseInfo}
             onSubmit={createPurchase}
+          />
+        )}
+
+        {activePage === "movements" && (
+          <StockMovementsPage
+            form={stockMovementForm}
+            isDisabled={Boolean(loadError) || parts.length === 0 || !hasAdminAccess(role)}
+            movements={stockMovements}
+            parts={parts}
+            role={role}
+            selectedPart={selectedStockMovementPart}
+            onChangeForm={updateStockMovementForm}
+            onOpenPart={(partId) => {
+              const part = parts.find((currentPart) => currentPart.id === partId);
+
+              if (part) {
+                openPartByRole(part);
+              }
+            }}
+            onSubmit={createStockMovement}
           />
         )}
 
@@ -4906,6 +5051,200 @@ function PurchasesPage({
           </div>
         )}
       </section>
+    </section>
+  );
+}
+
+
+function StockMovementsPage({
+  form,
+  isDisabled,
+  movements,
+  parts,
+  role,
+  selectedPart,
+  onChangeForm,
+  onOpenPart,
+  onSubmit
+}: {
+  form: StockMovementForm;
+  isDisabled: boolean;
+  movements: StockMovement[];
+  parts: Part[];
+  role: Role;
+  selectedPart: Part | undefined;
+  onChangeForm: (field: keyof StockMovementForm, value: string) => void;
+  onOpenPart: (partId: number) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const filteredMovements = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return movements.filter((movement) => {
+      const matchesType = typeFilter === "all" || movement.type === typeFilter;
+      const source = [
+        movement.partCode,
+        movement.partName,
+        stockMovementTypeLabels[movement.type],
+        movement.fromLocation,
+        movement.toLocation,
+        movement.reason,
+        movement.employee
+      ].join(" ").toLowerCase();
+      const matchesSearch = query ? source.includes(query) : true;
+
+      return matchesType && matchesSearch;
+    });
+  }, [movements, search, typeFilter]);
+
+  const receiptsCount = movements.filter((movement) => movement.type === "receipt").length;
+  const writeOffCount = movements.filter((movement) => movement.type === "write_off").length;
+  const inventoryCount = movements.filter((movement) => movement.type === "inventory").length;
+
+  return (
+    <section className="content-card">
+      <div className="content-card__header">
+        <div>
+          <p>Складские операции</p>
+          <h2>Журнал движений склада</h2>
+          <span>
+            Раздел фиксирует приход, списание, перемещение, инвентаризацию и
+            корректировки с автоматическим пересчетом остатка детали.
+          </span>
+        </div>
+      </div>
+
+      <div className="metrics-grid">
+        <MetricCard
+          title="Операций"
+          value={movements.length.toLocaleString("ru-RU")}
+          text={"Отфильтровано: " + filteredMovements.length.toLocaleString("ru-RU")}
+        />
+        <MetricCard
+          title="Приход"
+          value={receiptsCount.toLocaleString("ru-RU")}
+          text="Увеличение складского остатка"
+        />
+        <MetricCard
+          danger={writeOffCount > 0}
+          title="Списание"
+          value={writeOffCount.toLocaleString("ru-RU")}
+          text="Уменьшение складского остатка"
+        />
+        <MetricCard
+          title="Инвентаризация"
+          value={inventoryCount.toLocaleString("ru-RU")}
+          text="Фиксация фактического остатка"
+        />
+      </div>
+
+      {hasAdminAccess(role) && (
+        <form className="entity-form" style={{ marginTop: "24px" }} onSubmit={onSubmit}>
+          <label className="entity-form__field">
+            <span>Деталь</span>
+            <select required className="entity-form__control" disabled={isDisabled} value={form.partId} onChange={(event) => onChangeForm("partId", event.target.value)}>
+              {parts.map((part) => (
+                <option key={part.id} value={part.id}>
+                  {part.code} — {part.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="entity-form__field">
+            <span>Тип операции</span>
+            <select required className="entity-form__control" disabled={isDisabled} value={form.type} onChange={(event) => onChangeForm("type", event.target.value as StockMovementType)}>
+              {Object.entries(stockMovementTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="entity-form__field">
+            <span>{form.type === "inventory" ? "Фактический остаток" : "Количество"}</span>
+            <input required className="entity-form__control" disabled={isDisabled} inputMode="numeric" type="text" value={form.quantity} onChange={(event) => onChangeForm("quantity", onlyDigits(event.target.value))} placeholder="10" />
+          </label>
+
+          <label className="entity-form__field">
+            <span>Склад-источник</span>
+            <input className="entity-form__control" disabled={isDisabled} value={form.fromLocation} onChange={(event) => onChangeForm("fromLocation", event.target.value)} placeholder="Основной склад" />
+          </label>
+
+          <label className="entity-form__field">
+            <span>Склад-получатель</span>
+            <input className="entity-form__control" disabled={isDisabled} value={form.toLocation} onChange={(event) => onChangeForm("toLocation", event.target.value)} placeholder="Производственный участок" />
+          </label>
+
+          <label className="entity-form__field">
+            <span>Основание</span>
+            <input required className="entity-form__control" disabled={isDisabled} value={form.reason} onChange={(event) => onChangeForm("reason", event.target.value)} placeholder="Накладная, акт списания, инвентаризация" />
+          </label>
+
+          {selectedPart && (
+            <div className="form-hint" style={{ gridColumn: "1 / -1" }}>
+              <span>Текущий остаток: {selectedPart.stock} {selectedPart.unit}</span>
+              <span>Минимум: {selectedPart.minStock}</span>
+              <span>Поставщик: {selectedPart.supplier}</span>
+            </div>
+          )}
+
+          <button className="primary-button" disabled={isDisabled} style={{ alignSelf: "end" }} type="submit">
+            Провести операцию
+          </button>
+        </form>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) 220px", gap: "12px", margin: "24px 0" }}>
+        <input className="search-field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск по детали, складу, основанию или сотруднику" style={{ margin: 0 }} />
+        <select className="entity-form__control" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+          <option value="all">Все операции</option>
+          {Object.entries(stockMovementTypeLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filteredMovements.length === 0 ? (
+        <div className="system-message">Складских движений пока нет или они не подходят под фильтр.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px", minWidth: "1120px" }}>
+            <thead>
+              <tr>
+                {["Дата", "Операция", "Деталь", "Количество", "Остаток", "Склад", "Основание", "Ответственный", "Действие"].map((title) => (
+                  <th key={title} style={{ color: "var(--muted)", fontSize: "12px", fontWeight: 900, padding: "0 14px 6px", textAlign: "left", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMovements.map((movement) => (
+                <tr key={movement.id}>
+                  <td style={{ background: "var(--surface-soft)", borderBottomLeftRadius: "18px", borderTopLeftRadius: "18px", padding: "14px" }}>{formatDateTime(movement.createdAt)}</td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}><b>{stockMovementTypeLabels[movement.type]}</b></td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}><b style={{ display: "block" }}>{movement.partCode}</b><span style={{ color: "var(--muted)", fontSize: "13px" }}>{movement.partName}</span></td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.quantity}</td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.stockBefore} → <b>{movement.stockAfter}</b></td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{[movement.fromLocation, movement.toLocation].filter(Boolean).join(" → ") || "—"}</td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.reason}</td>
+                  <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.employee}</td>
+                  <td style={{ background: "var(--surface-soft)", borderBottomRightRadius: "18px", borderTopRightRadius: "18px", padding: "14px" }}>
+                    <button className="secondary-button" type="button" onClick={() => onOpenPart(movement.partId)}>Карточка</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
