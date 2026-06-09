@@ -13,6 +13,8 @@ import { DeletePartDrawingFileUseCase } from "../../application/useCases/DeleteP
 import { DeletePartNomenclatureUseCase } from "../../application/useCases/DeletePartNomenclatureUseCase";
 import { DeleteReferenceItemUseCase } from "../../application/useCases/DeleteReferenceItemUseCase";
 import { GetAuthUsersUseCase } from "../../application/useCases/GetAuthUsersUseCase";
+import { GetDepartmentsUseCase } from "../../application/useCases/GetDepartmentsUseCase";
+import { GetEmployeesUseCase } from "../../application/useCases/GetEmployeesUseCase";
 import { GetOperationLogsUseCase } from "../../application/useCases/GetOperationLogsUseCase";
 import { GetPartDrawingFileUseCase } from "../../application/useCases/GetPartDrawingFileUseCase";
 import { GetPartDrawingFilesUseCase } from "../../application/useCases/GetPartDrawingFilesUseCase";
@@ -30,6 +32,8 @@ import { UpdatePartNomenclatureUseCase } from "../../application/useCases/Update
 import { UpdateReferenceItemUseCase } from "../../application/useCases/UpdateReferenceItemUseCase";
 import { postgresPool } from "../../infrastructure/database/PostgresConnection";
 import { PostgresAuthUserRepository } from "../../infrastructure/repositories/PostgresAuthUserRepository";
+import { PostgresDepartmentRepository } from "../../infrastructure/repositories/PostgresDepartmentRepository";
+import { PostgresEmployeeRepository } from "../../infrastructure/repositories/PostgresEmployeeRepository";
 import { PostgresOperationLogRepository } from "../../infrastructure/repositories/PostgresOperationLogRepository";
 import { PostgresPartDrawingFileRepository } from "../../infrastructure/repositories/PostgresPartDrawingFileRepository";
 import { PostgresPartNomenclatureRepository } from "../../infrastructure/repositories/PostgresPartNomenclatureRepository";
@@ -42,6 +46,8 @@ import { createAuditLogMiddleware } from "./audit";
 import { createAuthMiddleware, requireRole } from "./auth";
 import { AuthController } from "./controllers/AuthController";
 import { AuthUsersController } from "./controllers/AuthUsersController";
+import { DepartmentsController } from "./controllers/DepartmentsController";
+import { EmployeesController } from "./controllers/EmployeesController";
 import { OperationLogsController } from "./controllers/OperationLogsController";
 import { PartDrawingFilesController } from "./controllers/PartDrawingFilesController";
 import { PartNomenclatureController } from "./controllers/PartNomenclatureController";
@@ -61,13 +67,17 @@ export function createApiRouter(): Router {
   const partDrawingFileRepository = new PostgresPartDrawingFileRepository();
   const operationLogRepository = new PostgresOperationLogRepository();
   const stockReportRepository = new PostgresStockReportRepository();
+  const departmentRepository = new PostgresDepartmentRepository();
+  const employeeRepository = new PostgresEmployeeRepository();
   const drawingFileStorage = new LocalDrawingFileStorage();
 
   const authenticate = createAuthMiddleware(authUserRepository);
   const requireAdmin = requireRole("superadmin", "admin");
+
   const createOperationLogUseCase = new CreateOperationLogUseCase(
     operationLogRepository,
   );
+
   const audit = (action: string, section: string, description: string) =>
     createAuditLogMiddleware(createOperationLogUseCase, {
       action,
@@ -133,6 +143,14 @@ export function createApiRouter(): Router {
     new GetOperationLogsUseCase(operationLogRepository),
     createOperationLogUseCase,
     new ClearOperationLogsUseCase(operationLogRepository),
+  );
+
+  const departmentsController = new DepartmentsController(
+    new GetDepartmentsUseCase(departmentRepository),
+  );
+
+  const employeesController = new EmployeesController(
+    new GetEmployeesUseCase(employeeRepository),
   );
 
   const partDrawingFilesController = new PartDrawingFilesController(
@@ -215,6 +233,7 @@ export function createApiRouter(): Router {
     requireAdmin,
     authUsersController.getAll,
   );
+
   router.post(
     "/auth/users",
     authenticate,
@@ -226,6 +245,7 @@ export function createApiRouter(): Router {
     ),
     authUsersController.create,
   );
+
   router.patch(
     "/auth/users/:id",
     authenticate,
@@ -237,6 +257,7 @@ export function createApiRouter(): Router {
     ),
     authUsersController.update,
   );
+
   router.patch(
     "/auth/users/:id/password",
     authenticate,
@@ -253,6 +274,7 @@ export function createApiRouter(): Router {
 
   router.get("/operation-logs", authenticate, operationLogsController.getAll);
   router.post("/operation-logs", authenticate, operationLogsController.create);
+
   router.delete(
     "/operation-logs",
     authenticate,
@@ -261,6 +283,7 @@ export function createApiRouter(): Router {
   );
 
   router.get("/references/:kind", authenticate, referencesController.getAll);
+
   router.post(
     "/references/:kind",
     authenticate,
@@ -272,6 +295,7 @@ export function createApiRouter(): Router {
     ),
     referencesController.create,
   );
+
   router.patch(
     "/references/:kind/:id",
     authenticate,
@@ -283,6 +307,7 @@ export function createApiRouter(): Router {
     ),
     referencesController.update,
   );
+
   router.delete(
     "/references/:kind/:id",
     authenticate,
@@ -300,6 +325,7 @@ export function createApiRouter(): Router {
     authenticate,
     partNomenclatureController.getAll,
   );
+
   router.post(
     "/part-nomenclature",
     authenticate,
@@ -311,6 +337,7 @@ export function createApiRouter(): Router {
     ),
     partNomenclatureController.create,
   );
+
   router.patch(
     "/part-nomenclature/:id",
     authenticate,
@@ -322,6 +349,7 @@ export function createApiRouter(): Router {
     ),
     partNomenclatureController.update,
   );
+
   router.delete(
     "/part-nomenclature/:id",
     authenticate,
@@ -339,12 +367,14 @@ export function createApiRouter(): Router {
     authenticate,
     partDrawingFilesController.getAll,
   );
+
   router.get(
     "/parts/drawing-storage-issues",
     authenticate,
     requireAdmin,
     partDrawingFilesController.getStorageIssues,
   );
+
   router.delete(
     "/parts/:id/drawing-file/missing-record",
     authenticate,
@@ -352,20 +382,23 @@ export function createApiRouter(): Router {
     audit(
       "Очистка записи чертежа",
       "Чертежи",
-      "Удалена битая запись файла чертежа"
+      "Удалена битая запись файла чертежа",
     ),
     partDrawingFilesController.clearMissingRecord,
   );
+
   router.get(
     "/parts/drawing-images",
     authenticate,
     partDrawingFilesController.getLegacyImageMap,
   );
+
   router.get(
     "/parts/:id/drawing-file",
     authenticate,
     partDrawingFilesController.getFile,
   );
+
   router.get(
     "/parts/:id/drawing-image",
     authenticate,
@@ -399,6 +432,7 @@ export function createApiRouter(): Router {
     audit("Удаление чертежа", "Чертежи", "Удален файл чертежа"),
     partDrawingFilesController.remove,
   );
+
   router.delete(
     "/parts/:id/drawing-image",
     authenticate,
@@ -408,6 +442,7 @@ export function createApiRouter(): Router {
   );
 
   router.get("/parts", authenticate, partsController.getAll);
+
   router.post(
     "/parts",
     authenticate,
@@ -415,6 +450,7 @@ export function createApiRouter(): Router {
     audit("Создание детали", "Детали", "Создана карточка детали"),
     partsController.create,
   );
+
   router.patch(
     "/parts/:id",
     authenticate,
@@ -424,6 +460,7 @@ export function createApiRouter(): Router {
   );
 
   router.get("/purchases", authenticate, purchasesController.getAll);
+
   router.post(
     "/purchases",
     authenticate,
@@ -432,56 +469,8 @@ export function createApiRouter(): Router {
     purchasesController.create,
   );
 
-  router.get("/departments", authenticate, async (_request, response) => {
-    try {
-      const result = await postgresPool.query(`
-        SELECT
-          id,
-          name,
-          manager,
-          employee_count AS count
-        FROM departments
-        ORDER BY id ASC
-      `);
-
-      response.json(result.rows);
-    } catch (error) {
-      console.error(error);
-
-      response.status(500).json({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Ошибка получения подразделений",
-      });
-    }
-  });
-
-  router.get("/employees", authenticate, async (_request, response) => {
-    try {
-      const result = await postgresPool.query(`
-        SELECT
-          id,
-          name,
-          position,
-          department,
-          role
-        FROM employees
-        ORDER BY id ASC
-      `);
-
-      response.json(result.rows);
-    } catch (error) {
-      console.error(error);
-
-      response.status(500).json({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Ошибка получения сотрудников",
-      });
-    }
-  });
+  router.get("/departments", authenticate, departmentsController.getAll);
+  router.get("/employees", authenticate, employeesController.getAll);
 
   return router;
 }
