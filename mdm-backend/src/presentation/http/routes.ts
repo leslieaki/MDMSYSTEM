@@ -9,6 +9,7 @@ import { CreatePartUseCase } from "../../application/useCases/CreatePartUseCase"
 import { CreatePartNomenclatureUseCase } from "../../application/useCases/CreatePartNomenclatureUseCase";
 import { CreatePurchaseUseCase } from "../../application/useCases/CreatePurchaseUseCase";
 import { CreateReferenceItemUseCase } from "../../application/useCases/CreateReferenceItemUseCase";
+import { CreateStockMovementUseCase } from "../../application/useCases/CreateStockMovementUseCase";
 import { DeletePartDrawingFileUseCase } from "../../application/useCases/DeletePartDrawingFileUseCase";
 import { DeletePartNomenclatureUseCase } from "../../application/useCases/DeletePartNomenclatureUseCase";
 import { DeleteReferenceItemUseCase } from "../../application/useCases/DeleteReferenceItemUseCase";
@@ -24,6 +25,7 @@ import { GetPartsUseCase } from "../../application/useCases/GetPartsUseCase";
 import { GetPurchasesUseCase } from "../../application/useCases/GetPurchasesUseCase";
 import { GetReferenceItemsUseCase } from "../../application/useCases/GetReferenceItemsUseCase";
 import { GetStockReportUseCase } from "../../application/useCases/GetStockReportUseCase";
+import { GetStockMovementsUseCase } from "../../application/useCases/GetStockMovementsUseCase";
 import { LoginUseCase } from "../../application/useCases/LoginUseCase";
 import { UploadPartDrawingFileUseCase } from "../../application/useCases/UploadPartDrawingFileUseCase";
 import { UpdateAuthUserUseCase } from "../../application/useCases/UpdateAuthUserUseCase";
@@ -41,6 +43,7 @@ import { PostgresPartRepository } from "../../infrastructure/repositories/Postgr
 import { PostgresPurchaseRepository } from "../../infrastructure/repositories/PostgresPurchaseRepository";
 import { PostgresReferenceRepository } from "../../infrastructure/repositories/PostgresReferenceRepository";
 import { PostgresStockReportRepository } from "../../infrastructure/repositories/PostgresStockReportRepository";
+import { PostgresStockMovementRepository } from "../../infrastructure/repositories/PostgresStockMovementRepository";
 import { LocalDrawingFileStorage } from "../../infrastructure/storage/LocalDrawingFileStorage";
 import { createAuditLogMiddleware } from "./audit";
 import { createAuthMiddleware, requireRole } from "./auth";
@@ -55,6 +58,7 @@ import { PartsController } from "./controllers/PartsController";
 import { PurchasesController } from "./controllers/PurchasesController";
 import { ReferencesController } from "./controllers/ReferencesController";
 import { ReportsController } from "./controllers/ReportsController";
+import { StockMovementsController } from "./controllers/StockMovementsController";
 
 export function createApiRouter(): Router {
   const router = Router();
@@ -67,6 +71,7 @@ export function createApiRouter(): Router {
   const partDrawingFileRepository = new PostgresPartDrawingFileRepository();
   const operationLogRepository = new PostgresOperationLogRepository();
   const stockReportRepository = new PostgresStockReportRepository();
+  const stockMovementRepository = new PostgresStockMovementRepository();
   const departmentRepository = new PostgresDepartmentRepository();
   const employeeRepository = new PostgresEmployeeRepository();
   const drawingFileStorage = new LocalDrawingFileStorage();
@@ -126,6 +131,11 @@ export function createApiRouter(): Router {
   const purchasesController = new PurchasesController(
     new GetPurchasesUseCase(purchaseRepository),
     new CreatePurchaseUseCase(partRepository, purchaseRepository),
+  );
+
+  const stockMovementsController = new StockMovementsController(
+    new GetStockMovementsUseCase(stockMovementRepository),
+    new CreateStockMovementUseCase(stockMovementRepository),
   );
 
   const referencesController = new ReferencesController(
@@ -467,6 +477,20 @@ export function createApiRouter(): Router {
     requireAdmin,
     audit("Создание закупки", "Закупки", "Создана запись закупки"),
     purchasesController.create,
+  );
+
+  router.get("/stock-movements", authenticate, stockMovementsController.getAll);
+
+  router.post(
+    "/stock-movements",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Создание складского движения",
+      "Склад",
+      "Создана операция движения складского остатка",
+    ),
+    stockMovementsController.create,
   );
 
   router.get("/departments", authenticate, departmentsController.getAll);
