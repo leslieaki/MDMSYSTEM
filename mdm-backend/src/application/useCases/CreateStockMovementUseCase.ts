@@ -2,6 +2,8 @@ import type {
   StockMovement,
   StockMovementType
 } from "../../domain/entities/StockMovement";
+import type { ReferenceKind } from "../../domain/entities/ReferenceItem";
+import type { ReferenceRepository } from "../../domain/repositories/ReferenceRepository";
 import type { StockMovementRepository } from "../../domain/repositories/StockMovementRepository";
 
 type CreateStockMovementInput = {
@@ -28,8 +30,21 @@ function isStockMovementType(value: string): value is StockMovementType {
 
 export class CreateStockMovementUseCase {
   constructor(
-    private readonly stockMovementRepository: StockMovementRepository
+    private readonly stockMovementRepository: StockMovementRepository,
+    private readonly referenceRepository: ReferenceRepository
   ) {}
+
+  private async ensureReferenceExists(
+    kind: ReferenceKind,
+    name: string,
+    errorMessage: string
+  ): Promise<void> {
+    const item = await this.referenceRepository.findByName(kind, name);
+
+    if (!item) {
+      throw new Error(errorMessage);
+    }
+  }
 
   async execute(input: CreateStockMovementInput): Promise<StockMovement> {
     const type = input.type.trim();
@@ -58,22 +73,76 @@ export class CreateStockMovementUseCase {
       throw new Error("Количество должно быть больше нуля");
     }
 
-    if (type === "transfer") {
-      if (!fromLocation || !toLocation) {
-        throw new Error("Для перемещения нужно указать склад-источник и склад-получатель");
-      }
-
-      if (fromLocation.toLowerCase() === toLocation.toLowerCase()) {
-        throw new Error("Склад-источник и склад-получатель не должны совпадать");
-      }
-    }
-
     if (!employee) {
       throw new Error("Не указан пользователь, выполняющий операцию");
     }
 
     if (!reason) {
-      throw new Error("Не указано основание складского движения");
+      throw new Error("Выберите основание складского движения из справочника");
+    }
+
+    await this.ensureReferenceExists(
+      "stock-movement-reasons",
+      reason,
+      "Основание складского движения отсутствует в справочнике НСИ"
+    );
+
+    if (type === "receipt") {
+      if (!toLocation) {
+        throw new Error("Выберите склад-получатель из справочника");
+      }
+
+      await this.ensureReferenceExists(
+        "warehouses",
+        toLocation,
+        "Склад-получатель отсутствует в справочнике НСИ"
+      );
+    }
+
+    if (type === "write_off") {
+      if (!fromLocation) {
+        throw new Error("Выберите склад-источник из справочника");
+      }
+
+      await this.ensureReferenceExists(
+        "warehouses",
+        fromLocation,
+        "Склад-источник отсутствует в справочнике НСИ"
+      );
+    }
+
+    if (type === "transfer") {
+      if (!fromLocation || !toLocation) {
+        throw new Error("Выберите склад-источник и склад-получатель из справочника");
+      }
+
+      if (fromLocation.toLowerCase() === toLocation.toLowerCase()) {
+        throw new Error("Склад-источник и склад-получатель не должны совпадать");
+      }
+
+      await this.ensureReferenceExists(
+        "warehouses",
+        fromLocation,
+        "Склад-источник отсутствует в справочнике НСИ"
+      );
+
+      await this.ensureReferenceExists(
+        "warehouses",
+        toLocation,
+        "Склад-получатель отсутствует в справочнике НСИ"
+      );
+    }
+
+    if (type === "inventory" || type === "adjustment") {
+      if (!toLocation) {
+        throw new Error("Выберите склад проведения операции из справочника");
+      }
+
+      await this.ensureReferenceExists(
+        "warehouses",
+        toLocation,
+        "Склад проведения операции отсутствует в справочнике НСИ"
+      );
     }
 
     return this.stockMovementRepository.create({

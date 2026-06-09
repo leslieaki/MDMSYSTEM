@@ -118,7 +118,9 @@ export type ReferenceKind =
   | "part-categories"
   | "materials"
   | "suppliers"
-  | "measurement-units";
+  | "measurement-units"
+  | "warehouses"
+  | "stock-movement-reasons";
 
 export type ReferenceItem = {
   id: number;

@@ -25,10 +25,12 @@ const tableByKind: Record<ReferenceKind, string> = {
   "part-categories": "part_categories",
   materials: "materials",
   suppliers: "suppliers",
-  "measurement-units": "measurement_units"
+  "measurement-units": "measurement_units",
+  warehouses: "warehouses",
+  "stock-movement-reasons": "stock_movement_reasons"
 };
 
-const partColumnByKind: Record<ReferenceKind, string> = {
+const partColumnByKind: Partial<Record<ReferenceKind, string>> = {
   "part-categories": "category",
   materials: "material",
   suppliers: "supplier",
@@ -50,14 +52,8 @@ function getTableName(kind: ReferenceKind): string {
   return tableName;
 }
 
-function getPartColumnName(kind: ReferenceKind): string {
-  const columnName = partColumnByKind[kind];
-
-  if (!columnName) {
-    throw new Error("Неизвестный справочник");
-  }
-
-  return columnName;
+function getPartColumnName(kind: ReferenceKind): string | null {
+  return partColumnByKind[kind] ?? null;
 }
 
 function mapReferenceItem(row: ReferenceRow): ReferenceItem {
@@ -203,14 +199,47 @@ export class PostgresReferenceRepository implements ReferenceRepository {
         [item.name, item.description, id]
       );
 
-      await client.query(
-        `
-          UPDATE parts
-          SET ${partColumnName} = $1
-          WHERE LOWER(${partColumnName}) = LOWER($2)
-        `,
-        [item.name, currentItem.name]
-      );
+      if (partColumnName) {
+        await client.query(
+          `
+            UPDATE parts
+            SET ${partColumnName} = $1
+            WHERE LOWER(${partColumnName}) = LOWER($2)
+          `,
+          [item.name, currentItem.name]
+        );
+      }
+
+      if (kind === "warehouses") {
+        await client.query(
+          `
+            UPDATE stock_movements
+            SET
+              from_location = CASE
+                WHEN LOWER(from_location) = LOWER($2) THEN $1
+                ELSE from_location
+              END,
+              to_location = CASE
+                WHEN LOWER(to_location) = LOWER($2) THEN $1
+                ELSE to_location
+              END
+            WHERE LOWER(from_location) = LOWER($2)
+               OR LOWER(to_location) = LOWER($2)
+          `,
+          [item.name, currentItem.name]
+        );
+      }
+
+      if (kind === "stock-movement-reasons") {
+        await client.query(
+          `
+            UPDATE stock_movements
+            SET reason = $1
+            WHERE LOWER(reason) = LOWER($2)
+          `,
+          [item.name, currentItem.name]
+        );
+      }
 
       if (nomenclatureColumnName) {
         await client.query(
@@ -281,18 +310,53 @@ export class PostgresReferenceRepository implements ReferenceRepository {
 
       const deletedItem = mapReferenceItem(currentItemRow);
 
-      const partsUsageResult = await client.query<CountRow>(
-        `
-          SELECT COUNT(*)::int AS count
-          FROM parts
-          WHERE LOWER(${partColumnName}) = LOWER($1)
-        `,
-        [deletedItem.name]
-      );
+      let affectedPartsBeforeDelete = 0;
 
-      const affectedPartsBeforeDelete = Number(
-        partsUsageResult.rows[0]?.count ?? 0
-      );
+      if (partColumnName) {
+        const partsUsageResult = await client.query<CountRow>(
+          `
+            SELECT COUNT(*)::int AS count
+            FROM parts
+            WHERE LOWER(${partColumnName}) = LOWER($1)
+          `,
+          [deletedItem.name]
+        );
+
+        affectedPartsBeforeDelete = Number(partsUsageResult.rows[0]?.count ?? 0);
+      }
+
+      let affectedStockMovementsBeforeDelete = 0;
+
+      if (kind === "warehouses") {
+        const stockMovementUsageResult = await client.query<CountRow>(
+          `
+            SELECT COUNT(*)::int AS count
+            FROM stock_movements
+            WHERE LOWER(from_location) = LOWER($1)
+               OR LOWER(to_location) = LOWER($1)
+          `,
+          [deletedItem.name]
+        );
+
+        affectedStockMovementsBeforeDelete = Number(
+          stockMovementUsageResult.rows[0]?.count ?? 0
+        );
+      }
+
+      if (kind === "stock-movement-reasons") {
+        const stockMovementUsageResult = await client.query<CountRow>(
+          `
+            SELECT COUNT(*)::int AS count
+            FROM stock_movements
+            WHERE LOWER(reason) = LOWER($1)
+          `,
+          [deletedItem.name]
+        );
+
+        affectedStockMovementsBeforeDelete = Number(
+          stockMovementUsageResult.rows[0]?.count ?? 0
+        );
+      }
 
       let affectedNomenclatureBeforeDelete = 0;
 
@@ -331,7 +395,8 @@ export class PostgresReferenceRepository implements ReferenceRepository {
       const isUsed =
         affectedPartsBeforeDelete > 0 ||
         affectedNomenclatureBeforeDelete > 0 ||
-        affectedPurchasesBeforeDelete > 0;
+        affectedPurchasesBeforeDelete > 0 ||
+        affectedStockMovementsBeforeDelete > 0;
 
       let replacementItem: ReferenceItem | null = null;
       let affectedParts = 0;
@@ -366,16 +431,18 @@ export class PostgresReferenceRepository implements ReferenceRepository {
 
         replacementItem = mapReferenceItem(replacementRow);
 
-        const updatedPartsResult = await client.query(
-          `
-            UPDATE parts
-            SET ${partColumnName} = $1
-            WHERE LOWER(${partColumnName}) = LOWER($2)
-          `,
-          [replacementItem.name, deletedItem.name]
-        );
+        if (partColumnName) {
+          const updatedPartsResult = await client.query(
+            `
+              UPDATE parts
+              SET ${partColumnName} = $1
+              WHERE LOWER(${partColumnName}) = LOWER($2)
+            `,
+            [replacementItem.name, deletedItem.name]
+          );
 
-        affectedParts = updatedPartsResult.rowCount ?? 0;
+          affectedParts = updatedPartsResult.rowCount ?? 0;
+        }
 
         if (nomenclatureColumnName) {
           const updatedNomenclatureResult = await client.query(
@@ -401,6 +468,37 @@ export class PostgresReferenceRepository implements ReferenceRepository {
           );
 
           affectedPurchases = updatedPurchasesResult.rowCount ?? 0;
+        }
+
+        if (kind === "warehouses") {
+          await client.query(
+            `
+              UPDATE stock_movements
+              SET
+                from_location = CASE
+                  WHEN LOWER(from_location) = LOWER($2) THEN $1
+                  ELSE from_location
+                END,
+                to_location = CASE
+                  WHEN LOWER(to_location) = LOWER($2) THEN $1
+                  ELSE to_location
+                END
+              WHERE LOWER(from_location) = LOWER($2)
+                 OR LOWER(to_location) = LOWER($2)
+            `,
+            [replacementItem.name, deletedItem.name]
+          );
+        }
+
+        if (kind === "stock-movement-reasons") {
+          await client.query(
+            `
+              UPDATE stock_movements
+              SET reason = $1
+              WHERE LOWER(reason) = LOWER($2)
+            `,
+            [replacementItem.name, deletedItem.name]
+          );
         }
       }
 
