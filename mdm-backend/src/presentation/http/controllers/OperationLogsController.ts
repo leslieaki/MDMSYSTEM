@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import type { ClearOperationLogsUseCase } from "../../../application/useCases/ClearOperationLogsUseCase";
 import type { CreateOperationLogUseCase } from "../../../application/useCases/CreateOperationLogUseCase";
 import type { GetOperationLogsUseCase } from "../../../application/useCases/GetOperationLogsUseCase";
+import type { AuthenticatedRequest } from "../auth";
 
 export class OperationLogsController {
   constructor(
@@ -29,9 +30,18 @@ export class OperationLogsController {
 
   create = async (request: Request, response: Response): Promise<void> => {
     try {
+      const authUser = (request as AuthenticatedRequest).authUser;
+
+      if (!authUser) {
+        response.status(401).json({
+          message: "Требуется авторизация"
+        });
+        return;
+      }
+
       const log = await this.createOperationLogUseCase.execute({
-        userName: String(request.body.userName ?? ""),
-        userRole: String(request.body.userRole ?? ""),
+        userName: authUser.displayName,
+        userRole: authUser.role,
         action: String(request.body.action ?? ""),
         section: String(request.body.section ?? ""),
         description: String(request.body.description ?? "")
