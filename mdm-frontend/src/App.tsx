@@ -205,7 +205,9 @@ const referenceKinds: ReferenceKind[] = [
   "part-categories",
   "materials",
   "suppliers",
-  "measurement-units"
+  "measurement-units",
+  "warehouses",
+  "stock-movement-reasons"
 ];
 
 const menu: MenuItem[] = [
@@ -291,7 +293,7 @@ const initialStockMovementForm: StockMovementForm = {
   type: "receipt",
   quantity: "",
   fromLocation: "",
-  toLocation: "Основной склад",
+  toLocation: "",
   reason: ""
 };
 
@@ -346,7 +348,9 @@ const emptyReferences: ReferencesMap = {
   "part-categories": [],
   materials: [],
   suppliers: [],
-  "measurement-units": []
+  "measurement-units": [],
+  warehouses: [],
+  "stock-movement-reasons": []
 };
 
 function isValidPage(value: string | null): value is Page {
@@ -387,7 +391,9 @@ function getReferenceTitle(kind: ReferenceKind): string {
     "part-categories": "Категории деталей",
     materials: "Материалы",
     suppliers: "Поставщики",
-    "measurement-units": "Единицы измерения"
+    "measurement-units": "Единицы измерения",
+    warehouses: "Склады и зоны хранения",
+    "stock-movement-reasons": "Основания складских операций"
   };
 
   return titles[kind];
@@ -398,7 +404,9 @@ function getReferenceSubtitle(kind: ReferenceKind): string {
     "part-categories": "Утвержденные типы деталей и комплектующих",
     materials: "Разрешенные материалы для номенклатуры",
     suppliers: "Поставщики, доступные для карточек деталей и закупок",
-    "measurement-units": "Единицы учета для склада и закупок"
+    "measurement-units": "Единицы учета для склада и закупок",
+    warehouses: "Утвержденные склады, зоны приемки и производственные участки",
+    "stock-movement-reasons": "Разрешенные основания для прихода, списания, перемещения и инвентаризации"
   };
 
   return subtitles[kind];
@@ -1807,6 +1815,8 @@ function App() {
         materialsFromApi,
         suppliersFromApi,
         unitsFromApi,
+        warehousesFromApi,
+        stockMovementReasonsFromApi,
         stockReportFromApi,
         drawingImagesFromApi,
         operationLogFromApi
@@ -1821,6 +1831,8 @@ function App() {
         getReferences("materials"),
         getReferences("suppliers"),
         getReferences("measurement-units"),
+        getReferences("warehouses"),
+        getReferences("stock-movement-reasons"),
         getStockReport(),
         getDrawingImages(),
         getOperationLogs()
@@ -1830,7 +1842,9 @@ function App() {
         "part-categories": categoriesFromApi,
         materials: materialsFromApi,
         suppliers: suppliersFromApi,
-        "measurement-units": unitsFromApi
+        "measurement-units": unitsFromApi,
+        warehouses: warehousesFromApi,
+        "stock-movement-reasons": stockMovementReasonsFromApi
       };
 
       setParts(partsFromApi);
@@ -1871,7 +1885,19 @@ function App() {
         ...currentForm,
         partId:
           partsFromApi.find((part) => String(part.id) === currentForm.partId)
-            ?.id.toString() || partsFromApi[0]?.id.toString() || ""
+            ?.id.toString() || partsFromApi[0]?.id.toString() || "",
+        fromLocation:
+          referencesFromApi.warehouses.find(
+            (item) => item.name === currentForm.fromLocation
+          )?.name || referencesFromApi.warehouses[0]?.name || "",
+        toLocation:
+          referencesFromApi.warehouses.find(
+            (item) => item.name === currentForm.toLocation
+          )?.name || referencesFromApi.warehouses[0]?.name || "",
+        reason:
+          referencesFromApi["stock-movement-reasons"].find(
+            (item) => item.name === currentForm.reason
+          )?.name || referencesFromApi["stock-movement-reasons"][0]?.name || ""
       }));
     } catch (requestError) {
       setLoadError(getErrorMessage(requestError, "Ошибка загрузки данных"));
@@ -2409,10 +2435,15 @@ function App() {
         {activePage === "movements" && (
           <StockMovementsPage
             form={stockMovementForm}
-            isDisabled={Boolean(loadError) || parts.length === 0 || !hasAdminAccess(role)}
+            isDisabled={
+              Boolean(loadError) ||
+              parts.length === 0 ||
+              references.warehouses.length === 0 ||
+              references["stock-movement-reasons"].length === 0
+            }
             movements={stockMovements}
             parts={parts}
-            role={role}
+            references={references}
             selectedPart={selectedStockMovementPart}
             onChangeForm={updateStockMovementForm}
             onOpenPart={(partId) => {
@@ -5061,7 +5092,7 @@ function StockMovementsPage({
   isDisabled,
   movements,
   parts,
-  role,
+  references,
   selectedPart,
   onChangeForm,
   onOpenPart,
@@ -5071,7 +5102,7 @@ function StockMovementsPage({
   isDisabled: boolean;
   movements: StockMovement[];
   parts: Part[];
-  role: Role;
+  references: ReferencesMap;
   selectedPart: Part | undefined;
   onChangeForm: (field: keyof StockMovementForm, value: string) => void;
   onOpenPart: (partId: number) => void;
@@ -5141,7 +5172,7 @@ function StockMovementsPage({
         />
       </div>
 
-      {hasAdminAccess(role) && (
+      {(
         <form className="entity-form" style={{ marginTop: "24px" }} onSubmit={onSubmit}>
           <label className="entity-form__field">
             <span>Деталь</span>
@@ -5172,17 +5203,37 @@ function StockMovementsPage({
 
           <label className="entity-form__field">
             <span>Склад-источник</span>
-            <input className="entity-form__control" disabled={isDisabled} value={form.fromLocation} onChange={(event) => onChangeForm("fromLocation", event.target.value)} placeholder="Основной склад" />
+            <select className="entity-form__control" disabled={isDisabled} value={form.fromLocation} onChange={(event) => onChangeForm("fromLocation", event.target.value)}>
+              <option value="">Не используется</option>
+              {references.warehouses.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="entity-form__field">
             <span>Склад-получатель</span>
-            <input className="entity-form__control" disabled={isDisabled} value={form.toLocation} onChange={(event) => onChangeForm("toLocation", event.target.value)} placeholder="Производственный участок" />
+            <select className="entity-form__control" disabled={isDisabled} value={form.toLocation} onChange={(event) => onChangeForm("toLocation", event.target.value)}>
+              <option value="">Не используется</option>
+              {references.warehouses.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="entity-form__field">
             <span>Основание</span>
-            <input required className="entity-form__control" disabled={isDisabled} value={form.reason} onChange={(event) => onChangeForm("reason", event.target.value)} placeholder="Накладная, акт списания, инвентаризация" />
+            <select required className="entity-form__control" disabled={isDisabled} value={form.reason} onChange={(event) => onChangeForm("reason", event.target.value)}>
+              {references["stock-movement-reasons"].map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </label>
 
           {selectedPart && (

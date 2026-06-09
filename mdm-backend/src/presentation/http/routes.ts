@@ -135,7 +135,7 @@ export function createApiRouter(): Router {
 
   const stockMovementsController = new StockMovementsController(
     new GetStockMovementsUseCase(stockMovementRepository),
-    new CreateStockMovementUseCase(stockMovementRepository),
+    new CreateStockMovementUseCase(stockMovementRepository, referenceRepository),
   );
 
   const referencesController = new ReferencesController(
@@ -484,7 +484,6 @@ export function createApiRouter(): Router {
   router.post(
     "/stock-movements",
     authenticate,
-    requireAdmin,
     audit(
       "Создание складского движения",
       "Склад",
