@@ -18,11 +18,21 @@ export type AuthenticatedRequest = Request & {
   authUser?: AuthUserSafe;
 };
 
-const tokenSecret =
-  process.env.AUTH_TOKEN_SECRET ||
-  "mdm-local-dev-secret-change-this-in-env-2026";
-
 const tokenTtlSeconds = 8 * 60 * 60;
+
+function getTokenSecret(): string {
+  const tokenSecret = process.env.AUTH_TOKEN_SECRET?.trim();
+
+  if (!tokenSecret) {
+    throw new Error("AUTH_TOKEN_SECRET is required");
+  }
+
+  if (tokenSecret.length < 32) {
+    throw new Error("AUTH_TOKEN_SECRET must contain at least 32 characters");
+  }
+
+  return tokenSecret;
+}
 
 function toSafeUser(user: AuthUser): AuthUserSafe {
   return {
@@ -42,7 +52,7 @@ function base64UrlDecode(value: string): string {
 }
 
 function sign(value: string): string {
-  return createHmac("sha256", tokenSecret).update(value).digest("base64url");
+  return createHmac("sha256", getTokenSecret()).update(value).digest("base64url");
 }
 
 function verifySignature(value: string, signature: string): boolean {
