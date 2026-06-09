@@ -7,6 +7,7 @@ import type { GetPartDrawingStorageIssuesUseCase } from "../../../application/us
 import type { PartDrawingStorageIssue } from "../../../application/useCases/GetPartDrawingStorageIssuesUseCase";
 import type { UploadPartDrawingFileUseCase } from "../../../application/useCases/UploadPartDrawingFileUseCase";
 import type { PartDrawingFile } from "../../../domain/entities/PartDrawingFile";
+import type { AuthenticatedRequest } from "../auth";
 
 type DrawingFileResponse = {
   id: number;
@@ -198,15 +199,21 @@ export class PartDrawingFilesController {
 
   upload = async (request: Request, response: Response): Promise<void> => {
     try {
+      const authUser = (request as AuthenticatedRequest).authUser;
+
+      if (!authUser) {
+        response.status(401).json({
+          message: "Требуется авторизация"
+        });
+        return;
+      }
+
       const partId = parsePartId(request.params.id);
       const mimeType = getHeaderValue(request.headers["content-type"]).split(
         ";"
       )[0];
       const originalName = decodeHeaderValue(
         getHeaderValue(request.headers["x-file-name"])
-      );
-      const uploadedBy = decodeHeaderValue(
-        getHeaderValue(request.headers["x-uploaded-by"])
       );
 
       if (!Buffer.isBuffer(request.body)) {
@@ -218,7 +225,7 @@ export class PartDrawingFilesController {
         originalName,
         mimeType,
         buffer: request.body,
-        uploadedBy
+        uploadedBy: authUser.displayName
       });
 
       response.status(201).json(mapFileResponse(file));

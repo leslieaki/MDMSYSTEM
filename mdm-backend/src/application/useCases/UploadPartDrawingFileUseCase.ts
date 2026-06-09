@@ -51,7 +51,11 @@ export class UploadPartDrawingFileUseCase {
     }
 
     const originalName = input.originalName.trim() || `drawing-${input.partId}`;
-    const uploadedBy = input.uploadedBy.trim() || "Неизвестный пользователь";
+    const uploadedBy = input.uploadedBy.trim();
+
+    if (!uploadedBy) {
+      throw new Error("Не указан пользователь, загрузивший файл");
+    }
 
     const savedFile = await this.drawingFileStorage.save({
       partId: input.partId,
