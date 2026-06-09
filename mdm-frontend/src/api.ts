@@ -35,6 +35,29 @@ export type Purchase = {
   date: string;
 };
 
+export type StockMovementType =
+  | "receipt"
+  | "write_off"
+  | "transfer"
+  | "inventory"
+  | "adjustment";
+
+export type StockMovement = {
+  id: number;
+  partId: number;
+  partCode: string;
+  partName: string;
+  type: StockMovementType;
+  quantity: number;
+  stockBefore: number;
+  stockAfter: number;
+  fromLocation: string;
+  toLocation: string;
+  reason: string;
+  employee: string;
+  createdAt: string;
+};
+
 export type Department = {
   id: number;
   name: string;
@@ -108,6 +131,15 @@ export type CreatePurchaseData = {
   quantity: number;
   price: number;
   employee: string;
+};
+
+export type CreateStockMovementData = {
+  partId: number;
+  type: StockMovementType;
+  quantity: number;
+  fromLocation: string;
+  toLocation: string;
+  reason: string;
 };
 
 export type CreatePartData = {
@@ -611,6 +643,22 @@ export function deletePartNomenclatureRequest(
 
 export function getPurchases(): Promise<Purchase[]> {
   return request<Purchase[]>("/purchases");
+}
+
+export function getStockMovements(): Promise<StockMovement[]> {
+  return request<StockMovement[]>("/stock-movements");
+}
+
+export function createStockMovementRequest(
+  data: CreateStockMovementData,
+): Promise<StockMovement> {
+  return request<StockMovement>("/stock-movements", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
 }
 
 export function createPurchaseRequest(
