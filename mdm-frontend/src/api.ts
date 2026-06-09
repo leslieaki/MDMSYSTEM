@@ -479,14 +479,12 @@ export async function getDrawingImages(): Promise<DrawingImagesMap> {
 export async function uploadDrawingImageRequest(
   partId: number,
   file: File,
-  uploadedBy = "Неизвестный пользователь",
 ): Promise<UploadDrawingImageResult> {
   const response = await fetch(`${API_URL}/parts/${partId}/drawing-file`, {
     method: "PUT",
     headers: createRequestHeaders({
       "Content-Type": file.type,
       "X-File-Name": encodeURIComponent(file.name),
-      "X-Uploaded-By": encodeURIComponent(uploadedBy),
     }),
     body: file,
   });

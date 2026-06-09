@@ -1540,11 +1540,7 @@ function App() {
         throw new Error("Размер изображения не должен превышать 25 МБ");
       }
 
-      const result = await uploadDrawingImageRequest(
-        part.id,
-        file,
-        currentEmployee?.name || "Неизвестный пользователь"
-      );
+      const result = await uploadDrawingImageRequest(part.id, file);
 
       setDrawingImages((currentImages) => ({
         ...currentImages,
