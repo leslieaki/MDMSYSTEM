@@ -7,11 +7,17 @@ dotenv.config({
   override: true
 });
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  "postgresql://mdm_user:mdm_password_2026@127.0.0.1:5433/mdm_db";
+function getRequiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value;
+}
 
 export const postgresPool = new Pool({
-  connectionString,
+  connectionString: getRequiredEnv("DATABASE_URL"),
   max: 10
 });
