@@ -27,6 +27,7 @@ import { GetPartNomenclatureUseCase } from "../../application/useCases/GetPartNo
 import { GetPartsUseCase } from "../../application/useCases/GetPartsUseCase";
 import { GetPurchasesUseCase } from "../../application/useCases/GetPurchasesUseCase";
 import { GetReferenceItemsUseCase } from "../../application/useCases/GetReferenceItemsUseCase";
+import { GetMdmQualityReportUseCase } from "../../application/useCases/GetMdmQualityReportUseCase";
 import { GetStockReportUseCase } from "../../application/useCases/GetStockReportUseCase";
 import { GetStockMovementsUseCase } from "../../application/useCases/GetStockMovementsUseCase";
 import { LoginUseCase } from "../../application/useCases/LoginUseCase";
@@ -48,6 +49,7 @@ import { PostgresPartNomenclatureRepository } from "../../infrastructure/reposit
 import { PostgresPartRepository } from "../../infrastructure/repositories/PostgresPartRepository";
 import { PostgresPurchaseRepository } from "../../infrastructure/repositories/PostgresPurchaseRepository";
 import { PostgresReferenceRepository } from "../../infrastructure/repositories/PostgresReferenceRepository";
+import { PostgresMdmQualityReportRepository } from "../../infrastructure/repositories/PostgresMdmQualityReportRepository";
 import { PostgresStockReportRepository } from "../../infrastructure/repositories/PostgresStockReportRepository";
 import { PostgresStockMovementRepository } from "../../infrastructure/repositories/PostgresStockMovementRepository";
 import { LocalDrawingFileStorage } from "../../infrastructure/storage/LocalDrawingFileStorage";
@@ -79,6 +81,7 @@ export function createApiRouter(): Router {
   const partDrawingFileRepository = new PostgresPartDrawingFileRepository();
   const operationLogRepository = new PostgresOperationLogRepository();
   const stockReportRepository = new PostgresStockReportRepository();
+  const mdmQualityReportRepository = new PostgresMdmQualityReportRepository();
   const stockMovementRepository = new PostgresStockMovementRepository();
   const departmentRepository = new PostgresDepartmentRepository();
   const employeeRepository = new PostgresEmployeeRepository();
@@ -167,6 +170,7 @@ export function createApiRouter(): Router {
 
   const reportsController = new ReportsController(
     new GetStockReportUseCase(stockReportRepository),
+    new GetMdmQualityReportUseCase(mdmQualityReportRepository),
   );
 
   const operationLogsController = new OperationLogsController(
@@ -301,6 +305,7 @@ export function createApiRouter(): Router {
   );
 
   router.get("/reports/stock", authenticate, reportsController.getStockReport);
+  router.get("/reports/mdm-quality", authenticate, reportsController.getMdmQualityReport);
 
   router.get("/operation-logs", authenticate, operationLogsController.getAll);
   router.post("/operation-logs", authenticate, operationLogsController.create);
