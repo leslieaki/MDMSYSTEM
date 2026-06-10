@@ -4011,7 +4011,6 @@ function Sidebar({
 }
 
 function SystemTopbar({
-  authSession,
   backendStatusText,
   hasError,
   page,
