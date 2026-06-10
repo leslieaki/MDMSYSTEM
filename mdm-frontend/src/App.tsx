@@ -68,7 +68,8 @@ type Page =
   | "drawings"
   | "journal"
   | "users"
-  | "admin";
+  | "admin"
+  | "nomenclature-requests";
 
 type Role = AuthUserRole;
 
@@ -245,6 +246,13 @@ const menu: MenuItem[] = [
     adminOnly: true
   },
   {
+    id: "nomenclature-requests",
+    title: "Заявки НСИ",
+    subtitle: "Workflow согласования",
+    group: "master-data",
+    adminOnly: true
+  },
+  {
     id: "drawings",
     title: "Чертежи",
     subtitle: "Техническая документация",
@@ -381,7 +389,8 @@ function isValidPage(value: string | null): value is Page {
     value === "drawings" ||
     value === "journal" ||
     value === "users" ||
-    value === "admin"
+    value === "admin" ||
+    value === "nomenclature-requests"
   );
 }
 
@@ -547,6 +556,7 @@ function getPageTitle(page: Page): string {
     drawings: "Чертежи",
     journal: "Журнал операций",
     users: "Пользователи",
+    "nomenclature-requests": "Заявки НСИ",
     admin: "Администрирование"
   };
 
@@ -566,6 +576,7 @@ function getPageDescription(page: Page): string {
     drawings: "Хранение и просмотр технической документации по деталям",
     journal: "Аудит действий пользователей и административных операций",
     users: "Управление учетными записями, ролями и доступом",
+    "nomenclature-requests": "Создание, отправка и согласование изменений мастер-данных",
     admin: "Администрирование справочников, номенклатуры и правил мастер-данных"
   };
 
@@ -2561,6 +2572,21 @@ function App() {
             onOpenDepartment={openDepartmentInfo}
             onOpenEmployee={openEmployeeInfo}
           />
+        )}
+
+        {activePage === "nomenclature-requests" && (
+          <div className="content-card">
+            <div className="content-card__header">
+              <div>
+                <p>Workflow НСИ</p>
+                <h2>Заявки на изменение мастер-данных</h2>
+              </div>
+            </div>
+            <p className="empty-state">
+              Страница подключена. Следующим шагом добавим загрузку заявок,
+              таблицу статусов, форму создания и кнопки согласования.
+            </p>
+          </div>
         )}
 
         {activePage === "drawings" && (
