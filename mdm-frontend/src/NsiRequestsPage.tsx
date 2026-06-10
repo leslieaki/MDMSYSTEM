@@ -14,13 +14,11 @@ import type {
   CreateNomenclatureRequestData,
   NomenclatureRequest,
   NomenclatureRequestStatus,
-  NomenclatureRequestType,
   PartNomenclature,
   ReferenceItem
 } from "./api";
 
 type NsiRequestForm = {
-  requestType: NomenclatureRequestType;
   targetNomenclatureId: string;
   code: string;
   name: string;
@@ -36,7 +34,6 @@ type NsiReferenceLists = {
 };
 
 const initialForm: NsiRequestForm = {
-  requestType: "create",
   targetNomenclatureId: "",
   code: "",
   name: "",
@@ -53,12 +50,7 @@ const statusLabels: Record<NomenclatureRequestStatus, string> = {
   rejected: "Отклонена"
 };
 
-const typeLabels: Record<NomenclatureRequestType, string> = {
-  create: "Создание",
-  update: "Изменение"
-};
-
-function hasAdminAccess(role: AuthUserRole): boolean {
+function hasReviewAccess(role: AuthUserRole): boolean {
   return role === "admin" || role === "superadmin";
 }
 
@@ -87,7 +79,8 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
   const [isSaving, setIsSaving] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const isAdmin = hasAdminAccess(role);
+  const canCreateRequests = role === "worker";
+  const canReviewRequests = hasReviewAccess(role);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -114,9 +107,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
       });
     } catch (error) {
       setActionError(
-        error instanceof Error
-          ? error.message
-          : "Не удалось загрузить заявки НСИ"
+        error instanceof Error ? error.message : "Не удалось загрузить заявки НСИ"
       );
     } finally {
       setIsLoading(false);
@@ -137,59 +128,53 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
     };
   }, [requests]);
 
-  function updateForm(field: keyof NsiRequestForm, value: string) {
-    setForm((currentForm) => {
-      const nextForm = {
-        ...currentForm,
-        [field]: value
-      };
+  function updateSelectedNomenclature(value: string) {
+    const selectedItem = partNomenclature.find(
+      (item) => String(item.id) === value
+    );
 
-      if (field === "requestType" && value === "create") {
-        return {
-          ...nextForm,
-          targetNomenclatureId: ""
-        };
-      }
+    if (!selectedItem) {
+      setForm(initialForm);
+      return;
+    }
 
-      if (field === "targetNomenclatureId" && value) {
-        const selectedItem = partNomenclature.find(
-          (item) => String(item.id) === value
-        );
-
-        if (selectedItem) {
-          return {
-            ...nextForm,
-            code: selectedItem.code,
-            name: selectedItem.name,
-            category: selectedItem.category,
-            material: selectedItem.material,
-            drawing: selectedItem.drawing
-          };
-        }
-      }
-
-      return nextForm;
+    setForm({
+      targetNomenclatureId: value,
+      code: selectedItem.code,
+      name: selectedItem.name,
+      category: selectedItem.category,
+      material: selectedItem.material,
+      drawing: selectedItem.drawing,
+      comment: ""
     });
+  }
+
+  function updateForm(field: keyof NsiRequestForm, value: string) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: value
+    }));
   }
 
   async function handleCreateRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!canCreateRequests) {
+      return;
+    }
 
     setIsSaving(true);
     setActionError("");
 
     try {
       const data: CreateNomenclatureRequestData = {
-        requestType: form.requestType,
-        targetNomenclatureId:
-          form.requestType === "update"
-            ? Number(form.targetNomenclatureId)
-            : null,
-        code: form.code.trim(),
-        name: form.name.trim(),
+        requestType: "update",
+        targetNomenclatureId: Number(form.targetNomenclatureId),
+        code: form.code,
+        name: form.name,
         category: form.category,
         material: form.material,
-        drawing: form.drawing.trim(),
+        drawing: form.drawing,
         comment: form.comment.trim()
       };
 
@@ -206,6 +191,10 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
   }
 
   async function handleSubmitRequest(id: number) {
+    if (!canCreateRequests) {
+      return;
+    }
+
     setActionError("");
 
     try {
@@ -219,6 +208,10 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
   }
 
   async function handleApproveRequest(id: number) {
+    if (!canReviewRequests) {
+      return;
+    }
+
     setActionError("");
 
     try {
@@ -232,7 +225,11 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
   }
 
   async function handleRejectRequest(id: number) {
-    const rejectReason = window.prompt("Укажите причину отклонения заявки НСИ");
+    if (!canReviewRequests) {
+      return;
+    }
+
+    const rejectReason = window.prompt("Причина отклонения");
 
     if (!rejectReason?.trim()) {
       return;
@@ -260,64 +257,53 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
         <div className="metric-card">
           <p>Всего заявок</p>
           <strong>{metrics.total.toLocaleString("ru-RU")}</strong>
-          <span>Создание и изменение мастер-данных</span>
+          <span>Изменения мастер-данных</span>
         </div>
 
         <div className="metric-card">
           <p>Черновики</p>
           <strong>{metrics.draft.toLocaleString("ru-RU")}</strong>
-          <span>Готовятся инициатором</span>
+          <span>Подготовка инициатором</span>
         </div>
 
         <div className="metric-card">
           <p>На согласовании</p>
           <strong>{metrics.pending.toLocaleString("ru-RU")}</strong>
-          <span>Ожидают решения администратора</span>
+          <span>Ожидают решения</span>
         </div>
 
         <div className="metric-card">
           <p>Утверждено</p>
           <strong>{metrics.approved.toLocaleString("ru-RU")}</strong>
-          <span>Применено к номенклатуре</span>
+          <span>Применено к НСИ</span>
         </div>
       </div>
 
-      <div className="nsi-requests-layout">
-        <form className="content-card entity-form" onSubmit={handleCreateRequest}>
-          <div className="content-card__header">
-            <div>
-              <p>Новая заявка</p>
-              <h2>Изменение мастер-данных</h2>
+      <div
+        className={
+          canCreateRequests
+            ? "nsi-requests-layout"
+            : "nsi-requests-layout nsi-requests-layout--review"
+        }
+      >
+        {canCreateRequests && (
+          <form className="content-card entity-form" onSubmit={handleCreateRequest}>
+            <div className="content-card__header">
+              <div>
+                <p>Новая заявка</p>
+                <h2>Изменение карточки НСИ</h2>
+              </div>
             </div>
-          </div>
 
-          <label>
-            Тип заявки
-            <select
-              className="entity-form__control"
-              value={form.requestType}
-              onChange={(event) =>
-                updateForm("requestType", event.target.value)
-              }
-              required
-            >
-              <option value="create">Создание новой позиции</option>
-              <option value="update">Изменение существующей позиции</option>
-            </select>
-          </label>
-
-          {form.requestType === "update" && (
             <label>
-              Изменяемая карточка
+              Карточка НСИ
               <select
                 className="entity-form__control"
                 value={form.targetNomenclatureId}
-                onChange={(event) =>
-                  updateForm("targetNomenclatureId", event.target.value)
-                }
+                onChange={(event) => updateSelectedNomenclature(event.target.value)}
                 required
               >
-                <option value="">Выберите карточку НСИ</option>
+                <option value="">Выберите карточку</option>
                 {partNomenclature.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.code} · {item.name}
@@ -325,90 +311,65 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                 ))}
               </select>
             </label>
-          )}
 
-          <label>
-            Код
-            <input
-              className="entity-form__control"
-              value={form.code}
-              onChange={(event) => updateForm("code", event.target.value)}
-              placeholder="Например: CH-006-2026"
-              required
-            />
-          </label>
+            {form.targetNomenclatureId && (
+              <div className="nsi-selected-card">
+                <strong>
+                  {form.code} · {form.name}
+                </strong>
+                <span>{form.drawing}</span>
+              </div>
+            )}
 
-          <label>
-            Наименование
-            <input
-              className="entity-form__control"
-              value={form.name}
-              onChange={(event) => updateForm("name", event.target.value)}
-              placeholder="Введите наименование позиции"
-              required
-            />
-          </label>
+            <label>
+              Категория
+              <select
+                className="entity-form__control"
+                value={form.category}
+                onChange={(event) => updateForm("category", event.target.value)}
+                required
+              >
+                <option value="">Выберите категорию</option>
+                {references.categories.map((item) => (
+                  <option key={item.id} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            Категория
-            <select
-              className="entity-form__control"
-              value={form.category}
-              onChange={(event) => updateForm("category", event.target.value)}
-              required
-            >
-              <option value="">Выберите категорию из справочника</option>
-              {references.categories.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label>
+              Материал
+              <select
+                className="entity-form__control"
+                value={form.material}
+                onChange={(event) => updateForm("material", event.target.value)}
+                required
+              >
+                <option value="">Выберите материал</option>
+                {references.materials.map((item) => (
+                  <option key={item.id} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            Материал
-            <select
-              className="entity-form__control"
-              value={form.material}
-              onChange={(event) => updateForm("material", event.target.value)}
-              required
-            >
-              <option value="">Выберите материал из справочника</option>
-              {references.materials.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label>
+              Обоснование
+              <textarea
+                className="entity-form__control"
+                value={form.comment}
+                onChange={(event) => updateForm("comment", event.target.value)}
+                required
+              />
+            </label>
 
-          <label>
-            Чертеж
-            <input
-              className="entity-form__control"
-              value={form.drawing}
-              onChange={(event) => updateForm("drawing", event.target.value)}
-              placeholder="Номер или код чертежа"
-              required
-            />
-          </label>
-
-          <label>
-            Обоснование
-            <textarea
-              className="entity-form__control"
-              value={form.comment}
-              onChange={(event) => updateForm("comment", event.target.value)}
-              placeholder="Почему нужно создать или изменить мастер-данные"
-              required
-            />
-          </label>
-
-          <button className="primary-button" type="submit" disabled={isSaving}>
-            {isSaving ? "Создание..." : "Создать черновик"}
-          </button>
-        </form>
+            <button className="primary-button" type="submit" disabled={isSaving}>
+              {isSaving ? "Создание..." : "Создать заявку"}
+            </button>
+          </form>
+        )}
 
         <div className="content-card nsi-requests-table-card">
           <div className="content-card__header">
@@ -424,14 +385,13 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
           {isLoading ? (
             <div className="system-message">Загрузка заявок НСИ...</div>
           ) : requests.length === 0 ? (
-            <p className="empty-state">Заявки НСИ пока не созданы.</p>
+            <p className="empty-state">Нет заявок НСИ.</p>
           ) : (
             <div className="nsi-requests-table-wrap">
               <table className="nsi-requests-table">
                 <thead>
                   <tr>
-                    <th>Заявка</th>
-                    <th>Тип</th>
+                    <th>Карточка</th>
                     <th>Статус</th>
                     <th>Инициатор</th>
                     <th>Рассмотрел</th>
@@ -449,7 +409,6 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                           {item.category} · {item.material} · {item.drawing}
                         </small>
                       </td>
-                      <td>{typeLabels[item.requestType]}</td>
                       <td>
                         <span className={`nsi-status nsi-status--${item.status}`}>
                           {statusLabels[item.status]}
@@ -466,12 +425,12 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                             <span>{formatDateTime(item.reviewedAt)}</span>
                           </>
                         ) : (
-                          <span className="muted-text">Не рассмотрена</span>
+                          <span className="muted-text">—</span>
                         )}
                       </td>
                       <td>
                         <div className="nsi-actions">
-                          {item.status === "draft" && (
+                          {item.status === "draft" && canCreateRequests && (
                             <button
                               className="secondary-button"
                               type="button"
@@ -481,7 +440,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                             </button>
                           )}
 
-                          {item.status === "pending" && isAdmin && (
+                          {item.status === "pending" && canReviewRequests && (
                             <>
                               <button
                                 className="primary-button"
@@ -500,8 +459,11 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                             </>
                           )}
 
-                          {item.status !== "draft" && item.status !== "pending" && (
-                            <span className="muted-text">Завершена</span>
+                          {(item.status === "approved" ||
+                            item.status === "rejected" ||
+                            (item.status === "draft" && !canCreateRequests) ||
+                            (item.status === "pending" && !canReviewRequests)) && (
+                            <span className="muted-text">—</span>
                           )}
                         </div>
                       </td>
@@ -513,13 +475,6 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
           )}
         </div>
       </div>
-
-      {metrics.rejected > 0 && (
-        <div className="system-message system-message--error">
-          Есть отклоненные заявки НСИ: {metrics.rejected}. Их нужно проверить и
-          создать новые исправленные заявки.
-        </div>
-      )}
     </section>
   );
 }
