@@ -10,7 +10,9 @@ function isReferenceKind(value: string): value is ReferenceKind {
     value === "part-categories" ||
     value === "materials" ||
     value === "suppliers" ||
-    value === "measurement-units"
+    value === "measurement-units" ||
+    value === "warehouses" ||
+    value === "stock-movement-reasons"
   );
 }
 
