@@ -26,6 +26,7 @@ import {
   getPurchases,
   getReferences,
   getStockReport,
+  getMdmQualityReport,
   getStockMovements,
   getStoredAuthSession,
   loginRequest,
@@ -44,6 +45,7 @@ import type {
   PartDrawingStorageIssue,
   Employee,
   ManagedAuthUser,
+  MdmQualityReport,
   Part,
   PartNomenclature,
   Purchase,
@@ -791,6 +793,8 @@ function App() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [stockReport, setStockReport] = useState<StockReportItem[]>([]);
+  const [mdmQualityReport, setMdmQualityReport] =
+    useState<MdmQualityReport | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [references, setReferences] = useState<ReferencesMap>(emptyReferences);
@@ -1867,6 +1871,7 @@ function App() {
         warehousesFromApi,
         stockMovementReasonsFromApi,
         stockReportFromApi,
+        mdmQualityReportFromApi,
         drawingImagesFromApi,
         operationLogFromApi
       ] = await Promise.all([
@@ -1883,6 +1888,7 @@ function App() {
         getReferences("warehouses"),
         getReferences("stock-movement-reasons"),
         getStockReport(),
+        getMdmQualityReport(),
         getDrawingImages(),
         hasAdminAccess(role) ? getOperationLogs() : Promise.resolve<OperationLogEntry[]>([])
       ]);
@@ -1901,6 +1907,7 @@ function App() {
       setPurchases(purchasesFromApi);
       setStockMovements(stockMovementsFromApi);
       setStockReport(stockReportFromApi);
+      setMdmQualityReport(mdmQualityReportFromApi);
       setDepartments(departmentsFromApi);
       setEmployees(employeesFromApi);
       setReferences(referencesFromApi);
@@ -2444,6 +2451,7 @@ function App() {
             partsWithoutDrawings={partsWithoutDrawings}
             purchases={purchases}
             purchasesTotal={totalPurchases}
+            mdmQualityReport={mdmQualityReport}
             role={role}
             totalStock={totalStock}
             onChangePage={setPage}
@@ -2716,7 +2724,7 @@ function PartDetailsModal({
     0
   );
   const purchaseTotal = partPurchases.reduce(
-    (sum, purchase) => sum + purchase.price,
+    (sum, purchase) => sum + purchase.total,
     0
   );
   const relatedHistory = useMemo(() => {
@@ -4052,6 +4060,7 @@ function DashboardPage({
   partsWithoutDrawings,
   purchases,
   purchasesTotal,
+  mdmQualityReport,
   role,
   totalStock,
   onChangePage,
@@ -4066,6 +4075,7 @@ function DashboardPage({
   partsWithoutDrawings: Part[];
   purchases: Purchase[];
   purchasesTotal: number;
+  mdmQualityReport: MdmQualityReport | null;
   role: Role;
   totalStock: number;
   onChangePage: (page: Page) => void;
@@ -4110,6 +4120,66 @@ function DashboardPage({
 
   return (
     <section className="dashboard-page dashboard-page--control">
+      <section className="content-card mdm-quality-panel">
+        <div className="content-card__header">
+          <div>
+            <p>Качество НСИ</p>
+            <h2>Контроль мастер-данных предприятия</h2>
+          </div>
+
+          <span
+            className={`mdm-quality-score ${
+              mdmQualityReport && mdmQualityReport.qualityScore < 70
+                ? "mdm-quality-score--warning"
+                : ""
+            }`}
+          >
+            {mdmQualityReport ? `${mdmQualityReport.qualityScore}%` : "—"}
+          </span>
+        </div>
+
+        <div className="mdm-quality-summary">
+          <div>
+            <span>Карточек</span>
+            <strong>{mdmQualityReport?.totalParts ?? parts.length}</strong>
+          </div>
+          <div>
+            <span>Критические</span>
+            <strong>{mdmQualityReport?.summary.criticalIssues ?? 0}</strong>
+          </div>
+          <div>
+            <span>Предупреждения</span>
+            <strong>{mdmQualityReport?.summary.warningIssues ?? 0}</strong>
+          </div>
+          <div>
+            <span>Затронуто объектов</span>
+            <strong>{mdmQualityReport?.summary.affectedObjects ?? 0}</strong>
+          </div>
+        </div>
+
+        <div className="mdm-quality-issues">
+          {mdmQualityReport ? (
+            mdmQualityReport.issues.length > 0 ? (
+              mdmQualityReport.issues.slice(0, 4).map((issue) => (
+                <article
+                  className={`mdm-quality-issue mdm-quality-issue--${issue.severity}`}
+                  key={issue.code}
+                >
+                  <div>
+                    <strong>{issue.title}</strong>
+                    <p>{issue.description}</p>
+                  </div>
+                  <span>{issue.affectedCount}</span>
+                </article>
+              ))
+            ) : (
+              <p className="empty-state">Критичных проблем качества мастер-данных не найдено.</p>
+            )
+          ) : (
+            <p className="empty-state">Отчёт качества мастер-данных загружается.</p>
+          )}
+        </div>
+      </section>
       <section className="control-hero">
         <div className="control-hero__content">
           <p className="control-hero__eyebrow">Оперативный центр</p>
