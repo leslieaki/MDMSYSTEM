@@ -106,6 +106,7 @@ type MenuItem = {
   subtitle: string;
   group: MenuGroup;
   adminOnly?: boolean;
+  superadminOnly?: boolean;
 };
 
 type PurchaseForm = {
@@ -258,8 +259,7 @@ const menu: MenuItem[] = [
     id: "purchases",
     title: "Закупки",
     subtitle: "Журнал снабжения",
-    group: "operations",
-    adminOnly: true
+    group: "operations"
   },
   {
     id: "movements",
@@ -279,7 +279,8 @@ const menu: MenuItem[] = [
     title: "Учетные записи",
     subtitle: "Доступ к MDM",
     group: "administration",
-    adminOnly: true
+    adminOnly: true,
+    superadminOnly: true
   },
   {
     id: "journal",
@@ -441,6 +442,10 @@ function hasAdminAccess(role: Role): boolean {
 
 function isPageAllowedForRole(page: Page, role: Role): boolean {
   const menuItem = menu.find((item) => item.id === page);
+
+  if (menuItem?.superadminOnly && role !== "superadmin") {
+    return false;
+  }
 
   return !menuItem?.adminOnly || hasAdminAccess(role);
 }
@@ -1458,7 +1463,7 @@ function App() {
       subtitle: "Подразделение",
       rows: [
         { label: "Руководитель", value: department.manager },
-        { label: "Количество сотрудников", value: String(department.count) }
+        { label: "Пользователей системы", value: String(department.count) }
       ]
     });
   }
@@ -1869,7 +1874,7 @@ function App() {
       ] = await Promise.all([
         getParts(),
         getPartNomenclature(),
-        hasAdminAccess(role) ? getPurchases() : Promise.resolve<Purchase[]>([]),
+        getPurchases(),
         getStockMovements(),
         hasAdminAccess(role) ? getDepartments() : Promise.resolve<Department[]>([]),
         hasAdminAccess(role) ? getEmployees() : Promise.resolve<Employee[]>([]),
@@ -2461,7 +2466,7 @@ function App() {
           />
         )}
 
-        {activePage === "purchases" && hasAdminAccess(role) && (
+        {activePage === "purchases" && (
           <PurchasesPage
             form={purchaseForm}
             isDisabled={Boolean(loadError) || parts.length === 0 || !hasAdminAccess(role)}
@@ -3104,7 +3109,7 @@ function LoginPage({
         <div className="mdm-logo mdm-logo--login">
           <div className="mdm-logo__mark">M</div>
           <div className="mdm-logo__content">
-            <b>Factory MDM</b>
+            <b>MDM закупок и склада</b>
             <span>авторизация пользователя</span>
           </div>
         </div>
@@ -3653,7 +3658,7 @@ function UsersPage({
                     <b>{user.displayName}</b>
                     <small>{user.username}</small>
                   </span>
-                  <span>{user.departmentName || "Не назначено"}</span>
+                  <span>{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
                   <span>{getRoleTitle(user.role)}</span>
                   <span>
                     <b
@@ -3910,7 +3915,7 @@ function Sidebar({
           </div>
 
           <div>
-            <b>{authSession.user.displayName}</b>
+            <b>{authSession.user.username}</b>
             <span>Логин: {authSession.user.username}</span>
           </div>
         </div>
@@ -4004,7 +4009,7 @@ function SystemTopbar({
         </button>
 
         <div className="breadcrumbs" aria-label="Навигационная цепочка">
-          <span>Factory MDM</span>
+          <span>MDM закупок и склада</span>
           <span>/</span>
           <b>{getPageTitle(page)}</b>
         </div>
@@ -4013,7 +4018,7 @@ function SystemTopbar({
       <div className="system-topbar__right">
         <span className="system-chip">{currentDate}</span>
         <span className="system-chip">{getRoleTitle(role)}</span>
-        <span className="system-chip">{authSession.user.displayName}</span>
+        <span className="system-chip">{authSession.user.username}</span>
         <span
           className={
             hasError
@@ -6148,16 +6153,29 @@ function EmployeesPage({
     void loadUsers();
   }, [loadUsers]);
 
+  const departmentUsers = useMemo(() => {
+    return users.filter((user) => user.role !== "superadmin");
+  }, [users]);
+
   const usersByDepartment = useMemo(() => {
     return new Map<number, ManagedAuthUser[]>(
       departments.map((department) => [
         department.id,
-        users.filter((user) => user.departmentId === department.id)
+        departmentUsers.filter((user) => user.departmentId === department.id)
       ])
     );
-  }, [departments, users]);
+  }, [departments, departmentUsers]);
 
-  const usersWithoutDepartment = users.filter((user) => !user.departmentId);
+  const usersWithoutDepartment = departmentUsers.filter(
+    (user) => !user.departmentId
+  );
+
+  function getDepartmentResponsible(usersInDepartment: ManagedAuthUser[]): string {
+    const adminUser = usersInDepartment.find((user) => user.role === "admin");
+    const firstUser = adminUser ?? usersInDepartment[0];
+
+    return firstUser?.displayName ?? "Не назначен";
+  }
 
   function openUserInfo(user: ManagedAuthUser): void {
     onOpenEmployee({
@@ -6184,17 +6202,23 @@ function EmployeesPage({
 
         <div className="simple-list">
           {departments.map((department) => {
-            const departmentUsers = usersByDepartment.get(department.id) || [];
+            const usersInDepartment = usersByDepartment.get(department.id) || [];
 
             return (
               <button
                 key={department.id}
                 className="simple-list__item simple-list__item--button"
                 type="button"
-                onClick={() => onOpenDepartment(department)}
+                onClick={() =>
+                  onOpenDepartment({
+                    ...department,
+                    manager: getDepartmentResponsible(usersInDepartment),
+                    count: usersInDepartment.length
+                  })
+                }
               >
                 <b>{department.name}</b>
-                <span>Пользователей системы: {departmentUsers.length}</span>
+                <span>Пользователей системы: {usersInDepartment.length}</span>
                 <small>
                   Создание новых подразделений выполняется через справочник
                 </small>
@@ -6210,7 +6234,8 @@ function EmployeesPage({
             <p>Доступ</p>
             <h2>Сотрудники системы</h2>
             <span>
-              Здесь отображаются только пользователи, созданные в этой MDM-системе.
+              Здесь отображаются только пользователи, созданные в этой MDM-системе,
+              кроме системного суперадминистратора.
             </span>
           </div>
 
@@ -6239,7 +6264,7 @@ function EmployeesPage({
               <span>Статус</span>
             </div>
 
-            {users.map((user) => (
+            {departmentUsers.map((user) => (
               <button
                 className="data-table__row data-table__row--button"
                 key={user.id}
@@ -6250,7 +6275,7 @@ function EmployeesPage({
                   <b>{user.displayName}</b>
                   <small>{user.username}</small>
                 </span>
-                <span>{user.departmentName || "Не назначено"}</span>
+                <span>{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
                 <span>{getRoleTitle(user.role)}</span>
                 <span>{user.isActive ? "Активен" : "Отключен"}</span>
               </button>
@@ -6263,7 +6288,7 @@ function EmployeesPage({
               </div>
             )}
 
-            {users.length === 0 && (
+            {departmentUsers.length === 0 && (
               <div className="system-message">Пользователи системы не найдены</div>
             )}
           </div>
