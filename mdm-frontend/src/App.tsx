@@ -5617,6 +5617,13 @@ function ReportsPage({
     (sum, item) => sum + item.purchaseTotal,
     0
   );
+  const totalStockInReport = items.reduce((sum, item) => sum + item.stock, 0);
+  const totalMinStockInReport = items.reduce((sum, item) => sum + item.minStock, 0);
+  const totalDeficitInReport = items.reduce(
+    (sum, item) => sum + Math.max(item.minStock - item.stock, 0),
+    0
+  );
+  const totalDeviationInReport = totalStockInReport - totalMinStockInReport;
 
   return (
     <section className="content-card">
@@ -5657,24 +5664,29 @@ function ReportsPage({
         <MetricCard
           title="Строк в отчете"
           value={items.length.toLocaleString("ru-RU")}
-          text={`Всего позиций: ${rawItemsCount.toLocaleString("ru-RU")}`}
+          text={`Всего позиций: ${rawItemsCount.toLocaleString("ru-RU")}; в норме: ${normalCount.toLocaleString("ru-RU")}`}
         />
         <MetricCard
-          danger={deficitCount > 0}
-          title="Дефицит"
-          value={deficitCount.toLocaleString("ru-RU")}
-          text="Остаток равен нулю или ниже"
+          danger={deficitCount + lowStockCount > 0}
+          title="Ниже нормы"
+          value={(deficitCount + lowStockCount).toLocaleString("ru-RU")}
+          text="Требуют пополнения до нормы"
         />
         <MetricCard
-          danger={lowStockCount > 0}
-          title="Низкий остаток"
-          value={lowStockCount.toLocaleString("ru-RU")}
-          text="Остаток достиг минимального уровня"
+          danger={totalDeficitInReport > 0}
+          title="Суммарный дефицит"
+          value={totalDeficitInReport.toLocaleString("ru-RU")}
+          text="До индивидуальных норм"
+        />
+        <MetricCard
+          title="Факт / норма"
+          value={`${totalStockInReport.toLocaleString("ru-RU")} / ${totalMinStockInReport.toLocaleString("ru-RU")}`}
+          text={`Отклонение: ${totalDeviationInReport >= 0 ? "+" : ""}${totalDeviationInReport.toLocaleString("ru-RU")}`}
         />
         <MetricCard
           title="Сумма закупок"
           value={formatMoney(purchaseTotal)}
-          text={`Норма: ${normalCount.toLocaleString("ru-RU")}`}
+          text="По связанным закупкам"
         />
       </div>
 
@@ -5730,7 +5742,7 @@ function ReportsPage({
               width: "100%",
               borderCollapse: "separate",
               borderSpacing: "0 10px",
-              minWidth: "1120px"
+              minWidth: "1320px"
             }}
           >
             <thead>
@@ -5738,8 +5750,10 @@ function ReportsPage({
                 {[
                   "Деталь",
                   "Категория",
-                  "Остаток",
-                  "Мин.",
+                  "Факт",
+                  "Норма",
+                  "Дефицит",
+                  "Отклонение",
                   "Статус",
                   "Закупок",
                   "Кол-во",
@@ -5768,6 +5782,8 @@ function ReportsPage({
               {items.map((item) => {
                 const isDanger = item.stockStatus === "Дефицит";
                 const isWarning = item.stockStatus === "Низкий остаток";
+                const deficit = Math.max(item.minStock - item.stock, 0);
+                const deviation = item.stock - item.minStock;
 
                 return (
                   <tr key={item.partId}>
@@ -5796,7 +5812,23 @@ function ReportsPage({
                       </b>
                     </td>
                     <td style={{ background: "var(--surface-soft)", padding: "14px" }}>
-                      {item.minStock} {item.unit}
+                      <b>{item.minStock} {item.unit}</b>
+                    </td>
+                    <td style={{ background: "var(--surface-soft)", padding: "14px" }}>
+                      <b className={deficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                        {deficit} {item.unit}
+                      </b>
+                    </td>
+                    <td style={{ background: "var(--surface-soft)", padding: "14px" }}>
+                      <b
+                        className={
+                          deviation < 0
+                            ? "warehouse-deviation-value warehouse-deviation-value--negative"
+                            : "warehouse-deviation-value warehouse-deviation-value--positive"
+                        }
+                      >
+                        {deviation > 0 ? "+" : ""}{deviation} {item.unit}
+                      </b>
                     </td>
                     <td style={{ background: "var(--surface-soft)", padding: "14px" }}>
                       <span
