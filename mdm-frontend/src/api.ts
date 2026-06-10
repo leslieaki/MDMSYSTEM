@@ -30,6 +30,7 @@ export type Purchase = {
   partId: number;
   quantity: number;
   price: number;
+  total: number;
   supplier: string;
   employee: string;
   date: string;
@@ -136,7 +137,6 @@ export type CreatePurchaseData = {
   partId: number;
   quantity: number;
   price: number;
-  employee: string;
 };
 
 export type CreateStockMovementData = {

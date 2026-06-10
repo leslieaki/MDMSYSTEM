@@ -113,7 +113,6 @@ type PurchaseForm = {
   partId: string;
   quantity: string;
   price: string;
-  employee: string;
 };
 
 type StockMovementForm = {
@@ -294,8 +293,7 @@ const menu: MenuItem[] = [
 const initialPurchaseForm: PurchaseForm = {
   partId: "",
   quantity: "",
-  price: "",
-  employee: ""
+  price: ""
 };
 
 const initialStockMovementForm: StockMovementForm = {
@@ -914,7 +912,7 @@ function App() {
   }, [parts]);
 
   const totalPurchases = useMemo(() => {
-    return purchases.reduce((sum, purchase) => sum + purchase.price, 0);
+    return purchases.reduce((sum, purchase) => sum + purchase.total, 0);
   }, [purchases]);
 
   const selectedPartFormNomenclature = partNomenclature.find(
@@ -1929,7 +1927,6 @@ function App() {
         partId:
           partsFromApi.find((part) => String(part.id) === currentForm.partId)
             ?.id.toString() || partsFromApi[0]?.id.toString() || "",
-        employee: authenticatedUserName
       }));
 
       setStockMovementForm((currentForm) => ({
@@ -1993,8 +1990,7 @@ function App() {
       await createPurchaseRequest({
         partId: selectedPurchasePart.id,
         quantity,
-        price,
-        employee: purchaseForm.employee.trim() || authenticatedUserName
+        price
       });
 
       addOperationLog(
@@ -2008,8 +2004,7 @@ function App() {
       setPurchaseForm({
         partId: String(selectedPurchasePart.id),
         quantity: "",
-        price: "",
-        employee: authenticatedUserName
+        price: ""
       });
 
       setPage("purchases");
@@ -4960,7 +4955,7 @@ function PurchasesPage({
     0
   );
   const totalAmount = filteredPurchases.reduce(
-    (sum, purchase) => sum + purchase.price,
+    (sum, purchase) => sum + purchase.total,
     0
   );
   const averageAmount =
@@ -5110,15 +5105,7 @@ function PurchasesPage({
               />
             </label>
 
-            <label className="entity-form__field">
-              <span>Ответственный</span>
-              <input
-                disabled
-                className="entity-form__control"
-                value={form.employee}
-                onChange={(event) => onChangeForm("employee", event.target.value)}
-              />
-            </label>
+
 
             {selectedPart && (
               <div className="form-hint purchases-form__hint">

@@ -46,6 +46,7 @@ export class CreatePurchaseUseCase {
         partId: part.id,
         quantity: input.quantity,
         price: input.price,
+        total: input.price * input.quantity,
         supplier: part.supplier,
         employee,
         date: new Date().toISOString().slice(0, 10)

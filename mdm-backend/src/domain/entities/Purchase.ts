@@ -4,6 +4,7 @@ export type Purchase = {
   partId: number;
   quantity: number;
   price: number;
+  total: number;
   supplier: string;
   employee: string;
   date: string;

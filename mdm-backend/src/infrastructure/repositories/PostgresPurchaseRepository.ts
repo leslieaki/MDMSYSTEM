@@ -25,12 +25,15 @@ function mapDate(value: string | Date): string {
 }
 
 function mapPurchase(row: PurchaseRow): Purchase {
+  const price = Number(row.price);
+  const quantity = Number(row.quantity);
   return {
     id: row.id,
     rawName: row.raw_name,
     partId: row.part_id,
-    quantity: row.quantity,
-    price: Number(row.price),
+    quantity,
+    price,
+    total: price * quantity,
     supplier: row.supplier,
     employee: row.employee,
     date: mapDate(row.date)
