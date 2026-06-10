@@ -56,7 +56,9 @@ import type {
   StockReportItem
 } from "./api";
 import { NsiRequestsPage } from "./NsiRequestsPage";
+import logoUrl from "./assets/logo.png";
 import "./styles.css";
+import "./enterprise.css";
 
 type Page =
   | "dashboard"
@@ -443,6 +445,23 @@ function getRoleTitle(role: Role): string {
   }
 
   return role === "admin" ? "Администратор системы" : "Сотрудник";
+}
+
+function getUserDisplayTitle(user: AuthSession["user"]): string {
+  if (user.role === "worker") {
+    return user.displayName === "worker" ? "Сотрудник склада" : user.displayName.replace(/Работник/g, "Сотрудник");
+  }
+
+  if (user.role === "admin") {
+    return user.displayName === "admin" ? "Администратор НСИ" : user.displayName;
+  }
+
+  return user.displayName;
+}
+
+function getUserProfileCode(user: AuthSession["user"]): string {
+  const prefix = user.role === "superadmin" ? "SADM" : user.role === "admin" ? "ADM" : "EMP";
+  return `${prefix}-${String(user.id).padStart(4, "0")}`;
 }
 
 function hasAdminAccess(role: Role): boolean {
@@ -3127,9 +3146,9 @@ function LoginPage({
     <main className="mdm-login-page">
       <section className="mdm-login-card">
         <div className="mdm-logo mdm-logo--login">
-          <div className="mdm-logo__mark">M</div>
+          <img className="mdm-logo__mark mdm-logo__mark--image" src={logoUrl} alt="Логотип предприятия" />
           <div className="mdm-logo__content">
-            <b>MDM закупок и склада</b>
+            <b>Корпоративная система мастер-данных</b>
             <span>авторизация пользователя</span>
           </div>
         </div>
@@ -3919,10 +3938,10 @@ function Sidebar({
   return (
     <aside className={isOpen ? "mdm-sidebar _open" : "mdm-sidebar"}>
       <div className="mdm-logo">
-        <div className="mdm-logo__mark">M</div>
+        <img className="mdm-logo__mark mdm-logo__mark--image" src={logoUrl} alt="Логотип предприятия" />
         <div className="mdm-logo__content">
-          <b>MDM склад</b>
-          <span>закупки и складские данные</span>
+          <b>Система мастер-данных</b>
+          <span>Корпоративный контур предприятия</span>
         </div>
       </div>
 
@@ -3931,12 +3950,12 @@ function Sidebar({
 
         <div className="profile-card__person">
           <div className="profile-card__avatar">
-            {authSession.user.displayName.slice(0, 1)}
+            {getUserDisplayTitle(authSession.user).slice(0, 1)}
           </div>
 
           <div>
-            <b>{authSession.user.username}</b>
-            <span>Логин: {authSession.user.username}</span>
+            <b>{getUserDisplayTitle(authSession.user)}</b>
+            <span>Профиль: {getUserProfileCode(authSession.user)}</span>
           </div>
         </div>
 
@@ -3944,7 +3963,7 @@ function Sidebar({
           <span>
             {authSession.user.departmentName ||
               currentEmployee?.department ||
-              "MDM закупок и склада"}
+              "Корпоративная система мастер-данных"}
           </span>
           <b
             className={
@@ -4029,7 +4048,7 @@ function SystemTopbar({
         </button>
 
         <div className="breadcrumbs" aria-label="Навигационная цепочка">
-          <span>MDM закупок и склада</span>
+          <span>Корпоративная система мастер-данных</span>
           <span>/</span>
           <b>{getPageTitle(page)}</b>
         </div>
@@ -4038,7 +4057,6 @@ function SystemTopbar({
       <div className="system-topbar__right">
         <span className="system-chip">{currentDate}</span>
         <span className="system-chip">{getRoleTitle(role)}</span>
-        <span className="system-chip">{authSession.user.username}</span>
         <span
           className={
             hasError
@@ -4058,7 +4076,7 @@ function PageHeader({ page }: { page: Page }) {
   return (
     <header className="page-header">
       <div>
-        <p className="page-header__eyebrow">MDM закупок и склада</p>
+        <p className="page-header__eyebrow">Корпоративная система мастер-данных</p>
         <h1 className="page-header__title">{getPageTitle(page)}</h1>
         <p className="page-header__description">{getPageDescription(page)}</p>
       </div>
@@ -4213,13 +4231,15 @@ function DashboardPage({
             >
               Открыть склад
             </button>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => onChangePage("journal")}
-            >
-              Журнал операций
-            </button>
+            {hasAdminAccess(role) && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onChangePage("journal")}
+              >
+                Журнал операций
+              </button>
+            )}
             {hasAdminAccess(role) && (
               <button
                 className="secondary-button"

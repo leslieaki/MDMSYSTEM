@@ -1,0 +1,233 @@
+:root {
+  --enterprise-blue-900: #0b2540;
+  --enterprise-blue-800: #123a61;
+  --enterprise-border: #c7d5e4;
+}
+
+.mdm-sidebar {
+  background: linear-gradient(180deg, var(--enterprise-blue-800), var(--enterprise-blue-900));
+}
+
+.mdm-logo {
+  align-items: center;
+  gap: 14px;
+}
+
+.mdm-logo__mark--image {
+  width: 74px;
+  height: 74px;
+  flex: 0 0 74px;
+  object-fit: contain;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mdm-logo__content b {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.mdm-logo__content span {
+  color: #c9d7e7;
+  line-height: 1.35;
+}
+
+.profile-card,
+.content-card,
+.metric-card,
+.entity-form__control,
+.search-field,
+.primary-button,
+.secondary-button,
+.mdm-nav__button {
+  border-radius: 8px;
+}
+
+.content-card,
+.metric-card {
+  border: 1px solid var(--enterprise-border);
+  box-shadow: 0 8px 22px rgba(11, 37, 64, 0.08);
+}
+
+.primary-button {
+  background: linear-gradient(180deg, #226aa4, #194f7d);
+}
+
+.mdm-nav__button--active {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 3px 0 0 #91bee8;
+}
+
+.nsi-requests-layout--review {
+  grid-template-columns: 1fr !important;
+}
+
+.nsi-requests-table-wrap {
+  overflow-x: auto;
+}
+
+.nsi-requests-table {
+  min-width: 1180px !important;
+  width: 100%;
+  table-layout: auto;
+}
+
+.nsi-requests-table th,
+.nsi-requests-table td {
+  padding: 12px;
+  vertical-align: top;
+}
+
+.nsi-requests-table td:nth-child(3),
+.nsi-requests-table td:nth-child(4) {
+  min-width: 180px;
+}
+
+.nsi-requests-table td:nth-child(5) {
+  min-width: 150px;
+}
+
+.mdm-quality-panel [class*="score"],
+.mdm-quality-panel [class*="circle"],
+.mdm-quality-panel [class*="ring"] {
+  border: 1px solid #c7d5e4 !important;
+  background: #ffffff !important;
+  color: #123a61 !important;
+}
+
+.nsi-requests-table-wrap {
+  overflow-x: auto;
+}
+
+.nsi-requests-table {
+  min-width: 1120px !important;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.nsi-requests-table th,
+.nsi-requests-table td {
+  box-sizing: border-box;
+}
+
+.nsi-requests-table th:nth-child(1),
+.nsi-requests-table td:nth-child(1) {
+  width: 34%;
+}
+
+.nsi-requests-table th:nth-child(2),
+.nsi-requests-table td:nth-child(2) {
+  width: 15%;
+}
+
+.nsi-requests-table th:nth-child(3),
+.nsi-requests-table td:nth-child(3) {
+  width: 17%;
+}
+
+.nsi-requests-table th:nth-child(4),
+.nsi-requests-table td:nth-child(4) {
+  width: 17%;
+}
+
+.nsi-actions-column,
+.nsi-actions-cell {
+  width: 17%;
+  min-width: 180px;
+}
+
+.nsi-actions-cell {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #f8fafc !important;
+}
+
+.nsi-actions-column {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: #ffffff;
+}
+
+.nsi-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.nsi-actions .primary-button,
+.nsi-actions .secondary-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.system-topbar__right .system-chip:nth-last-child(2) {
+  display: none;
+}
+
+.system-topbar__right .system-chip {
+  white-space: nowrap;
+}
+
+.nsi-requests-table {
+  min-width: 1160px !important;
+  table-layout: fixed;
+}
+
+.nsi-requests-table th,
+.nsi-requests-table td {
+  vertical-align: middle !important;
+}
+
+.nsi-requests-table .muted-text {
+  margin-top: 0 !important;
+  white-space: nowrap;
+}
+
+.nsi-status {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.nsi-actions {
+  align-items: center;
+  min-height: 40px;
+}
+
+.nsi-actions-cell {
+  vertical-align: middle !important;
+}
+
+.nsi-actions-column {
+  white-space: nowrap;
+}
+
+.nsi-requests-table th:nth-child(1),
+.nsi-requests-table td:nth-child(1) {
+  width: 36%;
+}
+
+.nsi-requests-table th:nth-child(2),
+.nsi-requests-table td:nth-child(2) {
+  width: 15%;
+}
+
+.nsi-requests-table th:nth-child(3),
+.nsi-requests-table td:nth-child(3) {
+  width: 18%;
+}
+
+.nsi-requests-table th:nth-child(4),
+.nsi-requests-table td:nth-child(4) {
+  width: 18%;
+}
+
+.nsi-requests-table th:nth-child(5),
+.nsi-requests-table td:nth-child(5) {
+  width: 13%;
+  min-width: 160px;
+}
