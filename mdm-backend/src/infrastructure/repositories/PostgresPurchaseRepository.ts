@@ -4,6 +4,7 @@ import type {
   PurchaseRepository
 } from "../../domain/repositories/PurchaseRepository";
 import { postgresPool } from "../database/PostgresConnection";
+import { normalizeMoney } from "../../domain/services/Money";
 
 type PurchaseRow = {
   id: number;
@@ -33,7 +34,7 @@ function mapPurchase(row: PurchaseRow): Purchase {
     partId: row.part_id,
     quantity,
     price,
-    total: price * quantity,
+    total: normalizeMoney(price * quantity),
     supplier: row.supplier,
     employee: row.employee,
     date: mapDate(row.date)

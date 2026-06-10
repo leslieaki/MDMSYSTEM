@@ -1,6 +1,7 @@
 import type { Purchase } from "../../domain/entities/Purchase";
 import type { PartRepository } from "../../domain/repositories/PartRepository";
 import type { PurchaseRepository } from "../../domain/repositories/PurchaseRepository";
+import { calculatePurchaseTotal, normalizeMoney } from "../../domain/services/Money";
 
 type CreatePurchaseInput = {
   partId: number;
@@ -34,6 +35,9 @@ export class CreatePurchaseUseCase {
       throw new Error("Цена должна быть числом больше или равным нулю");
     }
 
+    const price = normalizeMoney(input.price);
+    const total = calculatePurchaseTotal(price, input.quantity);
+
     const part = await this.partRepository.findById(input.partId);
 
     if (!part) {
@@ -45,8 +49,8 @@ export class CreatePurchaseUseCase {
         rawName: `${part.name} · ${input.quantity} ${part.unit}`,
         partId: part.id,
         quantity: input.quantity,
-        price: input.price,
-        total: input.price * input.quantity,
+        price,
+        total,
         supplier: part.supplier,
         employee,
         date: new Date().toISOString().slice(0, 10)
