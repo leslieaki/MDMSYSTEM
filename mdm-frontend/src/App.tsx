@@ -75,15 +75,19 @@ type LoginForm = {
   password: string;
 };
 
-type CreateUserForm = {
+type UserNameFields = {
+  lastName: string;
+  firstName: string;
+  middleName: string;
+};
+
+type CreateUserForm = UserNameFields & {
   username: string;
-  displayName: string;
   role: AuthUserRole;
   password: string;
 };
 
-type EditUserForm = {
-  displayName: string;
+type EditUserForm = UserNameFields & {
   role: AuthUserRole;
   isActive: boolean;
 };
@@ -231,8 +235,8 @@ const menu: MenuItem[] = [
   },
   {
     id: "admin",
-    title: "Номенклатура",
-    subtitle: "Справочники и правила",
+    title: "НСИ",
+    subtitle: "Номенклатура и справочники",
     group: "master-data",
     adminOnly: true
   },
@@ -262,22 +266,24 @@ const menu: MenuItem[] = [
   },
   {
     id: "employees",
-    title: "Сотрудники",
-    subtitle: "Подразделения и роли",
-    group: "administration"
+    title: "Ответственные",
+    subtitle: "Склад и закупки",
+    group: "administration",
+    adminOnly: true
   },
   {
     id: "users",
-    title: "Пользователи",
-    subtitle: "Учетные записи",
+    title: "Учетные записи",
+    subtitle: "Доступ к MDM",
     group: "administration",
     adminOnly: true
   },
   {
     id: "journal",
-    title: "Журнал",
-    subtitle: "История действий",
-    group: "administration"
+    title: "Аудит",
+    subtitle: "История изменений",
+    group: "administration",
+    adminOnly: true
   }
 ];
 
@@ -329,13 +335,17 @@ const initialReferenceForm: ReferenceForm = {
 
 const initialCreateUserForm: CreateUserForm = {
   username: "",
-  displayName: "",
+  lastName: "",
+  firstName: "",
+  middleName: "",
   role: "worker",
   password: ""
 };
 
 const initialEditUserForm: EditUserForm = {
-  displayName: "",
+  lastName: "",
+  firstName: "",
+  middleName: "",
   role: "worker",
   isActive: true
 };
@@ -424,6 +434,12 @@ function hasAdminAccess(role: Role): boolean {
   return role === "superadmin" || role === "admin";
 }
 
+function isPageAllowedForRole(page: Page, role: Role): boolean {
+  const menuItem = menu.find((item) => item.id === page);
+
+  return !menuItem?.adminOnly || hasAdminAccess(role);
+}
+
 function canCreateUserWithRole(currentRole: Role, targetRole: AuthUserRole): boolean {
   if (targetRole === "superadmin") {
     return false;
@@ -463,6 +479,26 @@ function canChangeUserPassword(
   );
 }
 
+function joinUserDisplayName(form: UserNameFields): string {
+  return [form.lastName, form.firstName, form.middleName]
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function splitUserDisplayName(displayName: string): UserNameFields {
+  const [lastName = "", firstName = "", ...middleNameParts] = displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return {
+    lastName,
+    firstName,
+    middleName: middleNameParts.join(" ")
+  };
+}
+
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
@@ -497,7 +533,7 @@ function getPageTitle(page: Page): string {
     movements: "Складские движения",
     warehouse: "Складские остатки",
     reports: "Отчеты",
-    employees: "Сотрудники и подразделения",
+    employees: "Ответственные склада и закупок",
     drawings: "Чертежи",
     journal: "Журнал операций",
     users: "Пользователи",
@@ -516,7 +552,7 @@ function getPageDescription(page: Page): string {
     movements: "Операции прихода, списания, перемещения, инвентаризации и корректировки остатков",
     warehouse: "Контроль остатков, минимальных запасов и позиций для пополнения",
     reports: "Складская аналитика и выгрузка данных для контроля MDM-процессов",
-    employees: "Подразделения, роли и ответственные сотрудники предприятия",
+    employees: "Справочная информация о складских и закупочных ответственных, доступная администраторам MDM",
     drawings: "Хранение и просмотр технической документации по деталям",
     journal: "Аудит действий пользователей и административных операций",
     users: "Управление учетными записями, ролями и доступом",
@@ -819,10 +855,7 @@ function App() {
   );
 
   const role: Role = authSession?.user.role || "worker";
-  const activePage: Page =
-    !hasAdminAccess(role) && (page === "admin" || page === "users")
-      ? "dashboard"
-      : page;
+  const activePage: Page = isPageAllowedForRole(page, role) ? page : "dashboard";
 
   const visibleMenu = useMemo(() => {
     return menu.filter((item) => !item.adminOnly || hasAdminAccess(role));
@@ -903,10 +936,9 @@ function App() {
       : "Backend API подключен";
 
   function setPage(nextPage: Page) {
-    const safePage: Page =
-      !hasAdminAccess(role) && (nextPage === "admin" || nextPage === "users")
-        ? "dashboard"
-        : nextPage;
+    const safePage: Page = isPageAllowedForRole(nextPage, role)
+      ? nextPage
+      : "dashboard";
 
     localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
     setIsMobileMenuOpen(false);
@@ -928,6 +960,11 @@ function App() {
   }
 
   function refreshOperationLog(delayMs = 0): void {
+    if (!hasAdminAccess(role)) {
+      setOperationLog([]);
+      return;
+    }
+
     window.setTimeout(() => {
       void getOperationLogs()
         .then((entries) => {
@@ -946,6 +983,10 @@ function App() {
     section: string,
     description: string
   ): void {
+    if (!hasAdminAccess(role)) {
+      return;
+    }
+
     const serverAuditedActions = new Set([
       "Создание закупки",
       "Создание складского движения",
@@ -1825,8 +1866,8 @@ function App() {
         getPartNomenclature(),
         getPurchases(),
         getStockMovements(),
-        getDepartments(),
-        getEmployees(),
+        hasAdminAccess(role) ? getDepartments() : Promise.resolve<Department[]>([]),
+        hasAdminAccess(role) ? getEmployees() : Promise.resolve<Employee[]>([]),
         getReferences("part-categories"),
         getReferences("materials"),
         getReferences("suppliers"),
@@ -1835,7 +1876,7 @@ function App() {
         getReferences("stock-movement-reasons"),
         getStockReport(),
         getDrawingImages(),
-        getOperationLogs()
+        hasAdminAccess(role) ? getOperationLogs() : Promise.resolve<OperationLogEntry[]>([])
       ]);
 
       const referencesFromApi: ReferencesMap = {
@@ -1916,7 +1957,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [authenticatedUserName]);
+  }, [authenticatedUserName, role]);
 
   async function createPurchase(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -2207,8 +2248,12 @@ function App() {
         return;
       }
 
-      setPageState(nextPage);
-      localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, nextPage);
+      const safePage = isPageAllowedForRole(nextPage, role)
+        ? nextPage
+        : "dashboard";
+
+      setPageState(safePage);
+      localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
     }
 
     if (!getPageFromHash()) {
@@ -2224,7 +2269,7 @@ function App() {
     return () => {
       window.removeEventListener("hashchange", syncPageWithHash);
     };
-  }, [page]);
+  }, [page, role]);
 
   useEffect(() => {
     if (!authSession) {
@@ -2496,7 +2541,7 @@ function App() {
           />
         )}
 
-        {activePage === "employees" && (
+        {activePage === "employees" && hasAdminAccess(role) && (
           <EmployeesPage
             departments={departments}
             employees={employees}
@@ -2520,7 +2565,7 @@ function App() {
           />
         )}
 
-        {activePage === "journal" && (
+        {activePage === "journal" && hasAdminAccess(role) && (
           <OperationLogPage
             entries={operationLog}
             role={role}
@@ -3233,7 +3278,7 @@ function UsersPage({
     setPasswordForm(initialPasswordUserForm);
     setEditUserId(user.id);
     setEditForm({
-      displayName: user.displayName,
+      ...splitUserDisplayName(user.displayName),
       role: user.role,
       isActive: user.isActive
     });
@@ -3273,9 +3318,15 @@ function UsersPage({
         throw new Error("Только суперадминистратор может создавать администраторов");
       }
 
+      const displayName = joinUserDisplayName(createForm);
+
+      if (!createForm.lastName.trim() || !createForm.firstName.trim()) {
+        throw new Error("Заполните фамилию и имя пользователя");
+      }
+
       await createAuthUserRequest({
         username: createForm.username.trim(),
-        displayName: createForm.displayName.trim(),
+        displayName,
         role: createForm.role,
         password: createForm.password
       });
@@ -3309,8 +3360,14 @@ function UsersPage({
         throw new Error("Недостаточно прав для изменения этой учетной записи");
       }
 
+      const displayName = joinUserDisplayName(editForm);
+
+      if (!editForm.lastName.trim() || !editForm.firstName.trim()) {
+        throw new Error("Заполните фамилию и имя пользователя");
+      }
+
       await updateAuthUserRequest(editingUser.id, {
-        displayName: editForm.displayName.trim(),
+        displayName,
         role: editForm.role,
         isActive: editForm.isActive
       });
@@ -3426,19 +3483,45 @@ function UsersPage({
             </label>
 
             <label className="entity-form__field">
-              <span>Имя пользователя</span>
+              <span>Фамилия</span>
               <input
                 className="entity-form__control"
-                value={createForm.displayName}
+                required
+                value={createForm.lastName}
                 onChange={(event) =>
-                  updateCreateForm("displayName", event.target.value)
+                  updateCreateForm("lastName", event.target.value)
                 }
-                placeholder="Иванов И.И."
+                placeholder="Иванов"
+              />
+            </label>
+
+            <label className="entity-form__field">
+              <span>Имя</span>
+              <input
+                className="entity-form__control"
+                required
+                value={createForm.firstName}
+                onChange={(event) =>
+                  updateCreateForm("firstName", event.target.value)
+                }
+                placeholder="Иван"
               />
             </label>
           </div>
 
           <div className="entity-form__row users-form__row">
+            <label className="entity-form__field">
+              <span>Отчество</span>
+              <input
+                className="entity-form__control"
+                value={createForm.middleName}
+                onChange={(event) =>
+                  updateCreateForm("middleName", event.target.value)
+                }
+                placeholder="Иванович"
+              />
+            </label>
+
             <label className="entity-form__field">
               <span>Роль</span>
               <select
@@ -3589,12 +3672,36 @@ function UsersPage({
           <form className="entity-form users-form" onSubmit={submitEditUser}>
             <div className="entity-form__row users-form__row">
               <label className="entity-form__field">
-                <span>Имя пользователя</span>
+                <span>Фамилия</span>
                 <input
                   className="entity-form__control"
-                  value={editForm.displayName}
+                  required
+                  value={editForm.lastName}
                   onChange={(event) =>
-                    updateEditForm("displayName", event.target.value)
+                    updateEditForm("lastName", event.target.value)
+                  }
+                />
+              </label>
+
+              <label className="entity-form__field">
+                <span>Имя</span>
+                <input
+                  className="entity-form__control"
+                  required
+                  value={editForm.firstName}
+                  onChange={(event) =>
+                    updateEditForm("firstName", event.target.value)
+                  }
+                />
+              </label>
+
+              <label className="entity-form__field">
+                <span>Отчество</span>
+                <input
+                  className="entity-form__control"
+                  value={editForm.middleName}
+                  onChange={(event) =>
+                    updateEditForm("middleName", event.target.value)
                   }
                 />
               </label>
@@ -3728,8 +3835,8 @@ function Sidebar({
       <div className="mdm-logo">
         <div className="mdm-logo__mark">M</div>
         <div className="mdm-logo__content">
-          <b>Factory MDM</b>
-          <span>единый контур мастер-данных</span>
+          <b>MDM склад</b>
+          <span>закупки и складские данные</span>
         </div>
       </div>
 
@@ -3861,7 +3968,7 @@ function PageHeader({ page }: { page: Page }) {
   return (
     <header className="page-header">
       <div>
-        <p className="page-header__eyebrow">Централизованная MDM-система</p>
+        <p className="page-header__eyebrow">MDM закупок и склада</p>
         <h1 className="page-header__title">{getPageTitle(page)}</h1>
         <p className="page-header__description">{getPageDescription(page)}</p>
       </div>
@@ -6003,7 +6110,13 @@ function EmployeesPage({
             >
               <span>{employee.name}</span>
               <span>{employee.position}</span>
-              <span>{employee.role}</span>
+              <span>
+                {employee.role === "admin" ||
+                employee.role === "worker" ||
+                employee.role === "superadmin"
+                  ? getRoleTitle(employee.role)
+                  : employee.role}
+              </span>
             </button>
           ))}
         </div>
