@@ -727,3 +727,89 @@ export function deleteReferenceItemRequest(
     body: JSON.stringify(data),
   });
 }
+
+export type NomenclatureRequestType = "create" | "update";
+
+export type NomenclatureRequestStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "rejected";
+
+export type NomenclatureRequest = {
+  id: number;
+  requestType: NomenclatureRequestType;
+  status: NomenclatureRequestStatus;
+  targetNomenclatureId: number | null;
+  targetCode: string;
+  targetName: string;
+  code: string;
+  name: string;
+  category: string;
+  material: string;
+  drawing: string;
+  comment: string;
+  rejectReason: string;
+  createdBy: string;
+  createdByRole: string;
+  reviewedBy: string;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateNomenclatureRequestData = {
+  requestType: NomenclatureRequestType;
+  targetNomenclatureId: number | null;
+  code: string;
+  name: string;
+  category: string;
+  material: string;
+  drawing: string;
+  comment: string;
+};
+
+export function getNomenclatureRequests(): Promise<NomenclatureRequest[]> {
+  return request<NomenclatureRequest[]>("/nomenclature-requests");
+}
+
+export function createNomenclatureRequest(
+  data: CreateNomenclatureRequestData,
+): Promise<NomenclatureRequest> {
+  return request<NomenclatureRequest>("/nomenclature-requests", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+export function submitNomenclatureRequest(
+  id: number,
+): Promise<NomenclatureRequest> {
+  return request<NomenclatureRequest>(`/nomenclature-requests/${id}/submit`, {
+    method: "PATCH",
+  });
+}
+
+export function approveNomenclatureRequest(
+  id: number,
+): Promise<NomenclatureRequest> {
+  return request<NomenclatureRequest>(`/nomenclature-requests/${id}/approve`, {
+    method: "PATCH",
+  });
+}
+
+export function rejectNomenclatureRequest(
+  id: number,
+  rejectReason: string,
+): Promise<NomenclatureRequest> {
+  return request<NomenclatureRequest>(`/nomenclature-requests/${id}/reject`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ rejectReason }),
+  });
+}
