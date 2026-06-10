@@ -4305,3 +4305,23 @@ textarea {
   color: var(--muted);
   font-size: 0.86rem;
 }
+
+.warehouse-deficit-value {
+  color: #b42318;
+}
+
+.warehouse-neutral-value {
+  color: var(--muted);
+}
+
+.warehouse-deviation-value {
+  white-space: nowrap;
+}
+
+.warehouse-deviation-value--negative {
+  color: #b42318;
+}
+
+.warehouse-deviation-value--positive {
+  color: #14763f;
+}

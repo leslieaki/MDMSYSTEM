@@ -1192,6 +1192,8 @@ function App() {
       "unit",
       "stock",
       "minStock",
+      "deficit",
+      "deviation",
       "stockStatus",
       "supplier",
       "drawing",
@@ -1209,6 +1211,8 @@ function App() {
         item.unit,
         item.stock,
         item.minStock,
+        Math.max(item.minStock - item.stock, 0),
+        item.stock - item.minStock,
         item.stockStatus,
         item.supplier,
         item.drawing,
@@ -5937,6 +5941,11 @@ function WarehousePage({
 
   const totalStock = filteredItems.reduce((sum, item) => sum + item.stock, 0);
   const totalMinStock = filteredItems.reduce((sum, item) => sum + item.minStock, 0);
+  const totalDeficit = filteredItems.reduce(
+    (sum, item) => sum + Math.max(item.minStock - item.stock, 0),
+    0
+  );
+  const totalDeviation = totalStock - totalMinStock;
   const canExport = hasAdminAccess(role) && filteredItems.length > 0;
 
   function exportWarehouseCsv(): void {
@@ -6006,21 +6015,21 @@ function WarehousePage({
             text={`Отфильтровано: ${filteredItems.length.toLocaleString("ru-RU")}`}
           />
           <MetricCard
-            danger={deficitItems.length > 0}
-            title="Дефицит"
-            value={deficitItems.length.toLocaleString("ru-RU")}
-            text="Остаток равен нулю"
+            danger={deficitItems.length + lowStockItems.length > 0}
+            title="Ниже нормы"
+            value={(deficitItems.length + lowStockItems.length).toLocaleString("ru-RU")}
+            text="Позиции требуют пополнения"
           />
           <MetricCard
-            danger={lowStockItems.length > 0}
-            title="Низкий остаток"
-            value={lowStockItems.length.toLocaleString("ru-RU")}
-            text="Остаток ниже минимума"
+            danger={totalDeficit > 0}
+            title="Суммарный дефицит"
+            value={totalDeficit.toLocaleString("ru-RU")}
+            text="До индивидуальных норм"
           />
           <MetricCard
-            title="Остаток / минимум"
+            title="Факт / норма"
             value={`${totalStock.toLocaleString("ru-RU")} / ${totalMinStock.toLocaleString("ru-RU")}`}
-            text="По текущей выборке"
+            text={`Отклонение: ${totalDeviation >= 0 ? "+" : ""}${totalDeviation.toLocaleString("ru-RU")}`}
           />
         </div>
       </section>
@@ -6058,7 +6067,7 @@ function WarehousePage({
                   {item.stockStatus}
                 </strong>
                 <small>
-                  {item.stock} / {item.minStock} {item.unit}
+                  Факт: {item.stock} · Норма: {item.minStock} · Дефицит: {Math.max(item.minStock - item.stock, 0)} {item.unit}
                 </small>
               </button>
             ))}
@@ -6128,7 +6137,7 @@ function WarehousePage({
             <option value="code">По коду</option>
             <option value="name">По наименованию</option>
             <option value="stock">По остатку</option>
-            <option value="minStock">По минимуму</option>
+            <option value="minStock">По норме</option>
           </select>
         </div>
 
@@ -6143,8 +6152,10 @@ function WarehousePage({
                   <th>Наименование</th>
                   <th>Категория</th>
                   <th>Поставщик</th>
-                  <th>Остаток</th>
-                  <th>Минимум</th>
+                  <th>Факт</th>
+                  <th>Норма</th>
+                  <th>Дефицит</th>
+                  <th>Отклонение</th>
                   <th>Статус</th>
                   <th>Действие</th>
                 </tr>
@@ -6155,6 +6166,8 @@ function WarehousePage({
                   const percent = item.minStock > 0
                     ? Math.min(100, Math.round((item.stock / item.minStock) * 100))
                     : 100;
+                  const deficit = Math.max(item.minStock - item.stock, 0);
+                  const deviation = item.stock - item.minStock;
                   const statusClass =
                     item.stockStatus === "Дефицит"
                       ? "warehouse-status warehouse-status--danger"
@@ -6187,7 +6200,25 @@ function WarehousePage({
                           />
                         </div>
                       </td>
-                      <td>{item.minStock} {item.unit}</td>
+                      <td>
+                        <b>{item.minStock} {item.unit}</b>
+                      </td>
+                      <td>
+                        <b className={deficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                          {deficit} {item.unit}
+                        </b>
+                      </td>
+                      <td>
+                        <b
+                          className={
+                            deviation < 0
+                              ? "warehouse-deviation-value warehouse-deviation-value--negative"
+                              : "warehouse-deviation-value warehouse-deviation-value--positive"
+                          }
+                        >
+                          {deviation > 0 ? "+" : ""}{deviation} {item.unit}
+                        </b>
+                      </td>
                       <td>
                         <span className={statusClass}>{item.stockStatus}</span>
                       </td>
