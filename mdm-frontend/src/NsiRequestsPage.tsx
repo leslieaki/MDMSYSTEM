@@ -54,6 +54,18 @@ function hasReviewAccess(role: AuthUserRole): boolean {
   return role === "admin" || role === "superadmin";
 }
 
+function getPersonDisplayName(value: string): string {
+  if (value === "worker" || value === "Работник склада") {
+    return "Сотрудник склада";
+  }
+
+  if (value === "admin") {
+    return "Администратор НСИ";
+  }
+
+  return value.replace(/Работник/g, "Сотрудник");
+}
+
 function formatDateTime(value: string | null): string {
   if (!value) {
     return "—";
@@ -81,6 +93,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
 
   const canCreateRequests = role === "worker";
   const canReviewRequests = hasReviewAccess(role);
+  const isFormReady = Boolean(form.targetNomenclatureId && form.category && form.material && form.comment.trim());
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -178,7 +191,8 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
         comment: form.comment.trim()
       };
 
-      await createNomenclatureRequest(data);
+      const createdRequest = await createNomenclatureRequest(data);
+      await submitNomenclatureRequest(createdRequest.id);
       setForm(initialForm);
       await loadData();
     } catch (error) {
@@ -365,8 +379,8 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
               />
             </label>
 
-            <button className="primary-button" type="submit" disabled={isSaving}>
-              {isSaving ? "Создание..." : "Создать заявку"}
+            <button className="primary-button" type="submit" disabled={isSaving || !isFormReady}>
+              {isSaving ? "Создание..." : "Отправить на согласование"}
             </button>
           </form>
         )}
@@ -395,7 +409,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                     <th>Статус</th>
                     <th>Инициатор</th>
                     <th>Рассмотрел</th>
-                    <th>Действия</th>
+                    <th className="nsi-actions-column">Действия</th>
                   </tr>
                 </thead>
 
@@ -415,21 +429,20 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                         </span>
                       </td>
                       <td>
-                        <strong>{item.createdBy}</strong>
+                        <strong>{getPersonDisplayName(item.createdBy)}</strong>
                         <span>{formatDateTime(item.createdAt)}</span>
                       </td>
                       <td>
                         {item.reviewedBy ? (
                           <>
-                            <strong>{item.reviewedBy}</strong>
+                            <strong>{getPersonDisplayName(item.reviewedBy)}</strong>
                             <span>{formatDateTime(item.reviewedAt)}</span>
                           </>
                         ) : (
                           <span className="muted-text">—</span>
                         )}
                       </td>
-                      <td>
-                        <div className="nsi-actions">
+                      <td className="nsi-actions-cell"><div className="nsi-actions">
                           {item.status === "draft" && canCreateRequests && (
                             <button
                               className="secondary-button"
@@ -459,11 +472,16 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                             </>
                           )}
 
-                          {(item.status === "approved" ||
-                            item.status === "rejected" ||
-                            (item.status === "draft" && !canCreateRequests) ||
-                            (item.status === "pending" && !canReviewRequests)) && (
+                          {(item.status === "approved" || item.status === "rejected") && (
+                            <span className="muted-text">Завершена</span>
+                          )}
+
+                          {item.status === "draft" && !canCreateRequests && (
                             <span className="muted-text">—</span>
+                          )}
+
+                          {item.status === "pending" && !canReviewRequests && (
+                            <span className="muted-text">На рассмотрении</span>
                           )}
                         </div>
                       </td>
