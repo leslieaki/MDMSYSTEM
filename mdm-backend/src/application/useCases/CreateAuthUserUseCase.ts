@@ -64,11 +64,10 @@ function canCreateRole(
     return false;
   }
 
-  if (currentUserRole === "superadmin") {
-    return targetRole === "admin" || targetRole === "worker";
-  }
-
-  return currentUserRole === "admin" && targetRole === "worker";
+  return (
+    currentUserRole === "superadmin" &&
+    (targetRole === "admin" || targetRole === "worker")
+  );
 }
 
 export class CreateAuthUserUseCase {

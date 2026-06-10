@@ -3793,3 +3793,180 @@ textarea {
 .mdm-nav__button[disabled] {
   display: none;
 }
+
+/* MDM final visual/access correction */
+.data-table--employees {
+  overflow-x: hidden;
+}
+
+.data-table--employees .data-table__row {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 1.4fr)
+    minmax(210px, 1.1fr)
+    minmax(190px, 0.9fr)
+    minmax(110px, 0.6fr);
+  min-width: 0;
+  column-gap: 18px;
+}
+
+.data-table--employees .data-table__row > span {
+  min-width: 0;
+  white-space: normal;
+}
+
+.data-table--employees .data-table__row b,
+.data-table--employees .data-table__row small {
+  display: block;
+}
+
+.data-table--employees .data-table__row small {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.data-table--employees .data-table__row b {
+  margin-bottom: 2px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.warehouse-table,
+.parts-table,
+.purchases-table,
+.stock-movements-table {
+  font-size: 15px;
+}
+
+.warehouse-table th,
+.warehouse-table td,
+.parts-table th,
+.parts-table td,
+.purchases-table th,
+.purchases-table td,
+.stock-movements-table th,
+.stock-movements-table td {
+  font-size: 15px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.warehouse-table td:nth-child(5),
+.warehouse-table td:nth-child(6),
+.parts-table td:nth-child(6),
+.parts-table td:nth-child(7),
+.stock-movements-table td:nth-child(4),
+.stock-movements-table td:nth-child(5) {
+  min-width: 120px;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.warehouse-empty-state {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 16px;
+}
+
+.mdm-topbar b,
+.mdm-topbar span,
+.mdm-topbar a,
+.mdm-topbar button {
+  white-space: nowrap;
+}
+
+.users-table .users-table__row {
+  grid-template-columns:
+    minmax(210px, 1.25fr)
+    minmax(210px, 1fr)
+    minmax(180px, 0.9fr)
+    minmax(130px, 0.7fr)
+    minmax(170px, 0.8fr)
+    minmax(180px, auto);
+}
+
+.users-table .users-table__row b,
+.users-table .users-table__row small {
+  display: block;
+}
+
+/* MDM correction: department counts and readable tables */
+.data-table--employees {
+  overflow-x: hidden;
+}
+
+.data-table--employees .data-table__row {
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 1.4fr)
+    minmax(220px, 1.1fr)
+    minmax(190px, 0.9fr)
+    minmax(120px, 0.6fr);
+  min-width: 0;
+  column-gap: 18px;
+}
+
+.data-table--employees .data-table__row > span {
+  min-width: 0;
+  white-space: normal;
+}
+
+.data-table--employees .data-table__row b,
+.data-table--employees .data-table__row small,
+.users-table .users-table__row b,
+.users-table .users-table__row small {
+  display: block;
+}
+
+.data-table--employees .data-table__row small,
+.users-table .users-table__row small {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.warehouse-table,
+.parts-table,
+.purchases-table,
+.stock-movements-table {
+  font-size: 15px;
+}
+
+.warehouse-table th,
+.warehouse-table td,
+.parts-table th,
+.parts-table td,
+.purchases-table th,
+.purchases-table td,
+.stock-movements-table th,
+.stock-movements-table td {
+  font-size: 15px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.warehouse-table td:nth-child(5),
+.warehouse-table td:nth-child(6),
+.parts-table td:nth-child(6),
+.parts-table td:nth-child(7),
+.stock-movements-table td:nth-child(4),
+.stock-movements-table td:nth-child(5) {
+  min-width: 120px;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.mdm-topbar b,
+.mdm-topbar span,
+.mdm-topbar a,
+.mdm-topbar button {
+  white-space: nowrap;
+}
