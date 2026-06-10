@@ -4283,3 +4283,25 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.nsi-requests-layout--review {
+  grid-template-columns: 1fr;
+}
+
+.nsi-selected-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-soft);
+}
+
+.nsi-selected-card strong {
+  color: var(--text);
+}
+
+.nsi-selected-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
