@@ -3593,3 +3593,126 @@ textarea:focus-visible,
     justify-content: center;
   }
 }
+
+/* MDM cleanup: access/user/layout pass */
+html,
+body,
+button,
+input,
+select,
+textarea,
+table {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 14px;
+}
+
+.mdm-main {
+  min-width: 0;
+}
+
+.entity-form__row.users-form__row {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.data-table {
+  overflow-x: auto;
+}
+
+.data-table__row {
+  min-width: 760px;
+}
+
+.data-table__row,
+.data-table__row span,
+.users-table__row,
+.users-table__row span {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.warehouse-table-wrap,
+.parts-table-wrap,
+.purchases-table-wrap,
+.reports-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.warehouse-table,
+.parts-table,
+.purchases-table {
+  width: max-content;
+  min-width: 1320px;
+  table-layout: auto;
+}
+
+.parts-table {
+  min-width: 1520px;
+}
+
+.warehouse-table th,
+.warehouse-table td,
+.parts-table th,
+.parts-table td,
+.purchases-table th,
+.purchases-table td {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  font-size: 14px;
+}
+
+.warehouse-table td:nth-child(2),
+.parts-table td:nth-child(2),
+.purchases-table td:nth-child(2),
+.warehouse-table td:nth-child(3),
+.parts-table td:nth-child(3) {
+  min-width: 220px;
+  white-space: normal;
+}
+
+.warehouse-table b,
+.warehouse-table span,
+.parts-table b,
+.parts-table span,
+.purchases-table b,
+.purchases-table span {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.parts-table td:nth-child(6),
+.parts-table td:nth-child(6) b,
+.warehouse-shortage-item small {
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+.mdm-nav__title,
+.mdm-nav__subtitle,
+.content-card__header,
+.page-header__title,
+.page-header__description,
+.warehouse-table,
+.parts-table,
+.purchases-table,
+.data-table {
+  letter-spacing: normal;
+}
+
+.employee-layout {
+  align-items: start;
+}
+
+.simple-list__item,
+.nomenclature-item,
+.warehouse-shortage-item {
+  word-break: normal;
+  overflow-wrap: normal;
+}
