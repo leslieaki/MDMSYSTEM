@@ -10,6 +10,7 @@ type CreateAuthUserInput = {
   currentUserRole: AuthUserRole;
   username: string;
   displayName: string;
+  departmentId: number;
   role: string;
   password: string;
 };
@@ -19,6 +20,8 @@ function toListItem(user: AuthUser): AuthUserListItem {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    departmentId: user.departmentId,
+    departmentName: user.departmentName,
     role: user.role,
     isActive: user.isActive,
     createdAt: user.createdAt
@@ -45,6 +48,14 @@ function parseRole(role: string): AuthUserRole {
   return role;
 }
 
+function parseDepartmentId(value: number): number {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error("Выберите подразделение из справочника");
+  }
+
+  return value;
+}
+
 function canCreateRole(
   currentUserRole: AuthUserRole,
   targetRole: AuthUserRole
@@ -66,13 +77,14 @@ export class CreateAuthUserUseCase {
   async execute(input: CreateAuthUserInput): Promise<AuthUserListItem> {
     const username = normalizeUsername(input.username);
     const displayName = input.displayName.trim();
+    const departmentId = parseDepartmentId(input.departmentId);
     const role = parseRole(input.role);
 
     validateUsername(username);
     validateNewPassword(input.password);
 
     if (!displayName) {
-      throw new Error("Укажите имя пользователя");
+      throw new Error("Укажите фамилию и имя пользователя");
     }
 
     if (!canCreateRole(input.currentUserRole, role)) {
@@ -88,6 +100,7 @@ export class CreateAuthUserUseCase {
     const createdUser = await this.authUserRepository.create({
       username,
       displayName,
+      departmentId,
       role,
       ...createPasswordHash(input.password),
       isActive: true

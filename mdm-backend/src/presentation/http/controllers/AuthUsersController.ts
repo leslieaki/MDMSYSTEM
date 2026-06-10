@@ -15,6 +15,14 @@ function getUserId(request: Request): number {
   return id;
 }
 
+function getDepartmentId(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  return Number(value);
+}
+
 export class AuthUsersController {
   constructor(
     private readonly getAuthUsersUseCase: GetAuthUsersUseCase,
@@ -47,10 +55,13 @@ export class AuthUsersController {
         return;
       }
 
+      const departmentId = getDepartmentId(request.body.departmentId);
+
       const user = await this.createAuthUserUseCase.execute({
         currentUserRole: currentUser.role,
         username: String(request.body.username ?? ""),
         displayName: String(request.body.displayName ?? ""),
+        departmentId: Number(departmentId ?? 0),
         role: String(request.body.role ?? ""),
         password: String(request.body.password ?? "")
       });
@@ -80,6 +91,7 @@ export class AuthUsersController {
         currentUserId: currentUser.id,
         currentUserRole: currentUser.role,
         displayName: String(request.body.displayName ?? ""),
+        departmentId: getDepartmentId(request.body.departmentId),
         role: String(request.body.role ?? ""),
         isActive: Boolean(request.body.isActive)
       });

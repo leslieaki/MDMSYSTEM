@@ -83,11 +83,13 @@ type UserNameFields = {
 
 type CreateUserForm = UserNameFields & {
   username: string;
+  departmentId: string;
   role: AuthUserRole;
   password: string;
 };
 
 type EditUserForm = UserNameFields & {
+  departmentId: string;
   role: AuthUserRole;
   isActive: boolean;
 };
@@ -256,7 +258,8 @@ const menu: MenuItem[] = [
     id: "purchases",
     title: "Закупки",
     subtitle: "Журнал снабжения",
-    group: "operations"
+    group: "operations",
+    adminOnly: true
   },
   {
     id: "movements",
@@ -338,6 +341,7 @@ const initialCreateUserForm: CreateUserForm = {
   lastName: "",
   firstName: "",
   middleName: "",
+  departmentId: "",
   role: "worker",
   password: ""
 };
@@ -346,6 +350,7 @@ const initialEditUserForm: EditUserForm = {
   lastName: "",
   firstName: "",
   middleName: "",
+  departmentId: "",
   role: "worker",
   isActive: true
 };
@@ -1864,7 +1869,7 @@ function App() {
       ] = await Promise.all([
         getParts(),
         getPartNomenclature(),
-        getPurchases(),
+        hasAdminAccess(role) ? getPurchases() : Promise.resolve<Purchase[]>([]),
         getStockMovements(),
         hasAdminAccess(role) ? getDepartments() : Promise.resolve<Department[]>([]),
         hasAdminAccess(role) ? getEmployees() : Promise.resolve<Employee[]>([]),
@@ -2456,7 +2461,7 @@ function App() {
           />
         )}
 
-        {activePage === "purchases" && (
+        {activePage === "purchases" && hasAdminAccess(role) && (
           <PurchasesPage
             form={purchaseForm}
             isDisabled={Boolean(loadError) || parts.length === 0 || !hasAdminAccess(role)}
@@ -2544,7 +2549,6 @@ function App() {
         {activePage === "employees" && hasAdminAccess(role) && (
           <EmployeesPage
             departments={departments}
-            employees={employees}
             onOpenDepartment={openDepartmentInfo}
             onOpenEmployee={openEmployeeInfo}
           />
@@ -2578,6 +2582,7 @@ function App() {
           <UsersPage
             currentUserId={authSession.user.id}
             currentUserRole={role}
+            departments={departments}
             onChanged={() => refreshOperationLog(250)}
           />
         )}
@@ -3183,10 +3188,12 @@ function LoginPage({
 function UsersPage({
   currentUserId,
   currentUserRole,
+  departments,
   onChanged
 }: {
   currentUserId: number;
   currentUserRole: Role;
+  departments: Department[];
   onChanged: () => void;
 }) {
   const [users, setUsers] = useState<ManagedAuthUser[]>([]);
@@ -3279,6 +3286,7 @@ function UsersPage({
     setEditUserId(user.id);
     setEditForm({
       ...splitUserDisplayName(user.displayName),
+      departmentId: user.departmentId ? String(user.departmentId) : "",
       role: user.role,
       isActive: user.isActive
     });
@@ -3324,9 +3332,14 @@ function UsersPage({
         throw new Error("Заполните фамилию и имя пользователя");
       }
 
+      if (!createForm.departmentId) {
+        throw new Error("Выберите подразделение пользователя");
+      }
+
       await createAuthUserRequest({
         username: createForm.username.trim(),
         displayName,
+        departmentId: Number(createForm.departmentId),
         role: createForm.role,
         password: createForm.password
       });
@@ -3366,8 +3379,14 @@ function UsersPage({
         throw new Error("Заполните фамилию и имя пользователя");
       }
 
+      if (editForm.role !== "superadmin" && !editForm.departmentId) {
+        throw new Error("Выберите подразделение пользователя");
+      }
+
       await updateAuthUserRequest(editingUser.id, {
         displayName,
+        departmentId:
+          editForm.role === "superadmin" ? null : Number(editForm.departmentId),
         role: editForm.role,
         isActive: editForm.isActive
       });
@@ -3523,6 +3542,25 @@ function UsersPage({
             </label>
 
             <label className="entity-form__field">
+              <span>Подразделение</span>
+              <select
+                className="entity-form__control"
+                required
+                value={createForm.departmentId}
+                onChange={(event) =>
+                  updateCreateForm("departmentId", event.target.value)
+                }
+              >
+                <option value="">Выберите подразделение</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={String(department.id)}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="entity-form__field">
               <span>Роль</span>
               <select
                 className="entity-form__control"
@@ -3589,6 +3627,8 @@ function UsersPage({
           <div className="data-table users-table">
             <div className="data-table__row data-table__row--head users-table__row">
               <span>Пользователь</span>
+              <span>Подразделение</span>
+              <span>Подразделение</span>
               <span>Роль</span>
               <span>Статус</span>
               <span>Создан</span>
@@ -3613,6 +3653,7 @@ function UsersPage({
                     <b>{user.displayName}</b>
                     <small>{user.username}</small>
                   </span>
+                  <span>{user.departmentName || "Не назначено"}</span>
                   <span>{getRoleTitle(user.role)}</span>
                   <span>
                     <b
@@ -3704,6 +3745,26 @@ function UsersPage({
                     updateEditForm("middleName", event.target.value)
                   }
                 />
+              </label>
+
+              <label className="entity-form__field">
+                <span>Подразделение</span>
+                <select
+                  className="entity-form__control"
+                  disabled={editingUser.role === "superadmin"}
+                  required={editingUser.role !== "superadmin"}
+                  value={editForm.departmentId}
+                  onChange={(event) =>
+                    updateEditForm("departmentId", event.target.value)
+                  }
+                >
+                  <option value="">Выберите подразделение</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={String(department.id)}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="entity-form__field">
@@ -3855,7 +3916,11 @@ function Sidebar({
         </div>
 
         <div className="profile-card__meta">
-          <span>{currentEmployee?.department || "Авторизованный пользователь"}</span>
+          <span>
+            {authSession.user.departmentName ||
+              currentEmployee?.department ||
+              "MDM закупок и склада"}
+          </span>
           <b
             className={
               role === "superadmin"
@@ -6051,38 +6116,91 @@ function WarehousePage({
 
 function EmployeesPage({
   departments,
-  employees,
   onOpenDepartment,
   onOpenEmployee
 }: {
   departments: Department[];
-  employees: Employee[];
   onOpenDepartment: (department: Department) => void;
   onOpenEmployee: (employee: Employee) => void;
 }) {
+  const [users, setUsers] = useState<ManagedAuthUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setIsLoadingUsers(true);
+      setLoadError("");
+      setUsers(await getAuthUsers());
+    } catch (requestError) {
+      setUsers([]);
+      setLoadError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Ошибка загрузки сотрудников системы"
+      );
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
+  const usersByDepartment = useMemo(() => {
+    return new Map<number, ManagedAuthUser[]>(
+      departments.map((department) => [
+        department.id,
+        users.filter((user) => user.departmentId === department.id)
+      ])
+    );
+  }, [departments, users]);
+
+  const usersWithoutDepartment = users.filter((user) => !user.departmentId);
+
+  function openUserInfo(user: ManagedAuthUser): void {
+    onOpenEmployee({
+      id: user.id,
+      name: user.displayName,
+      position: getRoleTitle(user.role),
+      department: user.departmentName || "Не назначено",
+      role: getRoleTitle(user.role)
+    });
+  }
+
   return (
-    <section className="employee-layout">
+    <section className="employee-layout employee-layout--system-users">
       <section className="content-card">
         <div className="content-card__header">
           <div>
-            <p>Оргструктура</p>
-            <h2>Подразделения</h2>
+            <p>Справочник</p>
+            <h2>Подразделения MDM</h2>
+            <span>
+              Подразделение выбирается из справочника при создании пользователя.
+            </span>
           </div>
         </div>
 
         <div className="simple-list">
-          {departments.map((department) => (
-            <button
-              key={department.id}
-              className="simple-list__item simple-list__item--button"
-              type="button"
-              onClick={() => onOpenDepartment(department)}
-            >
-              <b>{department.name}</b>
-              <span>Ответственный: {department.manager}</span>
-              <small>{department.count} сотрудников</small>
-            </button>
-          ))}
+          {departments.map((department) => {
+            const departmentUsers = usersByDepartment.get(department.id) || [];
+
+            return (
+              <button
+                key={department.id}
+                className="simple-list__item simple-list__item--button"
+                type="button"
+                onClick={() => onOpenDepartment(department)}
+              >
+                <b>{department.name}</b>
+                <span>Пользователей системы: {departmentUsers.length}</span>
+                <small>
+                  Создание новых подразделений выполняется через справочник
+                </small>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -6090,36 +6208,66 @@ function EmployeesPage({
         <div className="content-card__header">
           <div>
             <p>Доступ</p>
-            <h2>Сотрудники</h2>
-          </div>
-        </div>
-
-        <div className="data-table data-table--employees">
-          <div className="data-table__row data-table__row--head">
-            <span>ФИО</span>
-            <span>Должность</span>
-            <span>Роль</span>
+            <h2>Сотрудники системы</h2>
+            <span>
+              Здесь отображаются только пользователи, созданные в этой MDM-системе.
+            </span>
           </div>
 
-          {employees.map((employee) => (
-            <button
-              className="data-table__row data-table__row--button"
-              key={employee.id}
-              type="button"
-              onClick={() => onOpenEmployee(employee)}
-            >
-              <span>{employee.name}</span>
-              <span>{employee.position}</span>
-              <span>
-                {employee.role === "admin" ||
-                employee.role === "worker" ||
-                employee.role === "superadmin"
-                  ? getRoleTitle(employee.role)
-                  : employee.role}
-              </span>
-            </button>
-          ))}
+          <button
+            className="secondary-button secondary-button--large"
+            disabled={isLoadingUsers}
+            type="button"
+            onClick={() => void loadUsers()}
+          >
+            Обновить
+          </button>
         </div>
+
+        {loadError && (
+          <div className="system-message system-message--error">{loadError}</div>
+        )}
+
+        {isLoadingUsers ? (
+          <div className="system-message">Загрузка сотрудников системы...</div>
+        ) : (
+          <div className="data-table data-table--employees">
+            <div className="data-table__row data-table__row--head">
+              <span>ФИО</span>
+              <span>Подразделение</span>
+              <span>Роль</span>
+              <span>Статус</span>
+            </div>
+
+            {users.map((user) => (
+              <button
+                className="data-table__row data-table__row--button"
+                key={user.id}
+                type="button"
+                onClick={() => openUserInfo(user)}
+              >
+                <span>
+                  <b>{user.displayName}</b>
+                  <small>{user.username}</small>
+                </span>
+                <span>{user.departmentName || "Не назначено"}</span>
+                <span>{getRoleTitle(user.role)}</span>
+                <span>{user.isActive ? "Активен" : "Отключен"}</span>
+              </button>
+            ))}
+
+            {usersWithoutDepartment.length > 0 && (
+              <div className="system-message system-message--warning">
+                Есть пользователи без подразделения: {usersWithoutDepartment.length}.
+                Назначьте подразделение в разделе учетных записей.
+              </div>
+            )}
+
+            {users.length === 0 && (
+              <div className="system-message">Пользователи системы не найдены</div>
+            )}
+          </div>
+        )}
       </section>
     </section>
   );

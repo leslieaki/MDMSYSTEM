@@ -79,6 +79,8 @@ export type AuthUser = {
   id: number;
   username: string;
   displayName: string;
+  departmentId: number | null;
+  departmentName: string;
   role: AuthUserRole;
 };
 
@@ -90,12 +92,14 @@ export type ManagedAuthUser = AuthUser & {
 export type CreateAuthUserData = {
   username: string;
   displayName: string;
+  departmentId: number;
   role: AuthUserRole;
   password: string;
 };
 
 export type UpdateAuthUserData = {
   displayName: string;
+  departmentId: number | null;
   role: AuthUserRole;
   isActive: boolean;
 };

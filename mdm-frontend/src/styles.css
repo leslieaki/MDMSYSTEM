@@ -3716,3 +3716,80 @@ textarea {
   word-break: normal;
   overflow-wrap: normal;
 }
+
+/* MDM correction: access, users, departments and table typography */
+.data-table--employees {
+  overflow-x: visible;
+}
+
+.data-table--employees .data-table__row {
+  grid-template-columns: minmax(180px, 1.3fr) minmax(180px, 1.1fr) minmax(140px, 0.8fr) minmax(120px, 0.7fr);
+  min-width: 0;
+}
+
+.users-table .users-table__row {
+  grid-template-columns: minmax(190px, 1.25fr) minmax(180px, 1fr) minmax(150px, 0.8fr) minmax(130px, 0.7fr) minmax(160px, 0.9fr) minmax(170px, auto);
+  min-width: 980px;
+}
+
+.employee-layout--system-users {
+  align-items: start;
+  grid-template-columns: minmax(320px, 440px) minmax(560px, 1fr);
+}
+
+.warehouse-empty-state {
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 86px;
+  padding-left: 32px;
+  text-align: left;
+}
+
+.warehouse-table,
+.parts-table,
+.purchases-table,
+.stock-movements-table,
+.stock-movement-card,
+.stock-movement-card *,
+.warehouse-table *,
+.parts-table *,
+.purchases-table * {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.warehouse-table th,
+.warehouse-table td,
+.parts-table th,
+.parts-table td,
+.purchases-table th,
+.purchases-table td {
+  vertical-align: middle;
+}
+
+.warehouse-table td:nth-child(5),
+.warehouse-table td:nth-child(6),
+.warehouse-table td:nth-child(5) b,
+.warehouse-table td:nth-child(6) b,
+.parts-table td:nth-child(6),
+.parts-table td:nth-child(6) b,
+.parts-table td:nth-child(7),
+.parts-table td:nth-child(7) b,
+.warehouse-shortage-item small {
+  min-width: 135px;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  font-size: 14px;
+}
+
+.entity-form__control,
+.entity-form__field select,
+.users-form select {
+  min-width: 210px;
+}
+
+.mdm-nav__button[disabled] {
+  display: none;
+}

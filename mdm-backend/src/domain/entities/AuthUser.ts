@@ -4,6 +4,8 @@ export type AuthUser = {
   id: number;
   username: string;
   displayName: string;
+  departmentId: number | null;
+  departmentName: string;
   role: AuthUserRole;
   passwordHash: string;
   passwordSalt: string;
@@ -16,6 +18,8 @@ export type AuthUserSafe = {
   id: number;
   username: string;
   displayName: string;
+  departmentId: number | null;
+  departmentName: string;
   role: AuthUserRole;
 };
 
