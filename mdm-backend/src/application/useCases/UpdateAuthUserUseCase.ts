@@ -10,6 +10,7 @@ type UpdateAuthUserInput = {
   currentUserId: number;
   currentUserRole: AuthUserRole;
   displayName: string;
+  departmentId: number | null;
   role: string;
   isActive: boolean;
 };
@@ -19,6 +20,8 @@ function toListItem(user: AuthUser): AuthUserListItem {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    departmentId: user.departmentId,
+    departmentName: user.departmentName,
     role: user.role,
     isActive: user.isActive,
     createdAt: user.createdAt
@@ -31,6 +34,18 @@ function parseRole(role: string): AuthUserRole {
   }
 
   return role;
+}
+
+function parseDepartmentId(value: number | null, role: AuthUserRole): number | null {
+  if (role === "superadmin") {
+    return null;
+  }
+
+  if (!Number.isInteger(value) || Number(value) <= 0) {
+    throw new Error("Выберите подразделение из справочника");
+  }
+
+  return Number(value);
 }
 
 function canManageTarget(
@@ -50,13 +65,14 @@ export class UpdateAuthUserUseCase {
   async execute(input: UpdateAuthUserInput): Promise<AuthUserListItem> {
     const displayName = input.displayName.trim();
     const role = parseRole(input.role);
+    const departmentId = parseDepartmentId(input.departmentId, role);
 
     if (!Number.isInteger(input.id) || input.id <= 0) {
       throw new Error("Некорректный идентификатор пользователя");
     }
 
     if (!displayName) {
-      throw new Error("Укажите имя пользователя");
+      throw new Error("Укажите фамилию и имя пользователя");
     }
 
     const existingUser = await this.authUserRepository.findById(input.id);
@@ -110,6 +126,7 @@ export class UpdateAuthUserUseCase {
 
     const updatedUser = await this.authUserRepository.update(input.id, {
       displayName,
+      departmentId,
       role,
       isActive: input.isActive
     });

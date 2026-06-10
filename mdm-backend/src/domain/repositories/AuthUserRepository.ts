@@ -3,6 +3,7 @@ import type { AuthUser, AuthUserRole } from "../entities/AuthUser";
 export type CreateAuthUserRecord = {
   username: string;
   displayName: string;
+  departmentId: number;
   role: AuthUserRole;
   passwordHash: string;
   passwordSalt: string;
@@ -12,6 +13,7 @@ export type CreateAuthUserRecord = {
 
 export type UpdateAuthUserRecord = {
   displayName: string;
+  departmentId: number | null;
   role: AuthUserRole;
   isActive: boolean;
 };

@@ -81,6 +81,18 @@ async function main(): Promise<void> {
         WHERE LOWER(departments.name) = LOWER(data.name)
       );
 
+
+      UPDATE auth_users user_record
+      SET department_id = department_record.id
+      FROM departments department_record
+      WHERE user_record.department_id IS NULL
+        AND (
+          (LOWER(user_record.display_name) LIKE LOWER('Кузнецова%') AND department_record.name = 'Отдел НСИ')
+          OR (LOWER(user_record.display_name) LIKE LOWER('Иванов%') AND department_record.name = 'Склад комплектующих')
+          OR (LOWER(user_record.display_name) LIKE LOWER('Петров%') AND department_record.name = 'Отдел снабжения')
+          OR (LOWER(user_record.username) = 'worker' AND department_record.name = 'Склад комплектующих')
+        );
+
       INSERT INTO employees (name, position, department, role)
       SELECT data.name, data.position, data.department, data.role
       FROM (

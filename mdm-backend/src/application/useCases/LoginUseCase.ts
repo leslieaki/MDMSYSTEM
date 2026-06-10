@@ -12,6 +12,8 @@ function toSafeUser(user: AuthUser): AuthUserSafe {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
+    departmentId: user.departmentId,
+    departmentName: user.departmentName,
     role: user.role
   };
 }
