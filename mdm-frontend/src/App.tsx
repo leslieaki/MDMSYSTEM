@@ -2433,6 +2433,7 @@ function App() {
 
         <PageHeader page={activePage} />
 
+        <section key={activePage} className="page-shell" aria-live="polite">
         {activePage === "dashboard" && (
           <DashboardPage
             deficitParts={deficitParts}
@@ -2602,6 +2603,7 @@ function App() {
             onOpenEditReference={openEditReferenceModal}
           />
         )}
+        </section>
       </main>
 
       {partModal && (
