@@ -3,8 +3,10 @@ import type { ErrorRequestHandler } from "express";
 import { ClearMissingPartDrawingFileUseCase } from "../../application/useCases/ClearMissingPartDrawingFileUseCase";
 import { ClearOperationLogsUseCase } from "../../application/useCases/ClearOperationLogsUseCase";
 import { ChangeAuthUserPasswordUseCase } from "../../application/useCases/ChangeAuthUserPasswordUseCase";
+import { ApproveNomenclatureRequestUseCase } from "../../application/useCases/ApproveNomenclatureRequestUseCase";
 import { CreateAuthUserUseCase } from "../../application/useCases/CreateAuthUserUseCase";
 import { CreateOperationLogUseCase } from "../../application/useCases/CreateOperationLogUseCase";
+import { CreateNomenclatureRequestUseCase } from "../../application/useCases/CreateNomenclatureRequestUseCase";
 import { CreatePartUseCase } from "../../application/useCases/CreatePartUseCase";
 import { CreatePartNomenclatureUseCase } from "../../application/useCases/CreatePartNomenclatureUseCase";
 import { CreatePurchaseUseCase } from "../../application/useCases/CreatePurchaseUseCase";
@@ -14,6 +16,7 @@ import { DeletePartDrawingFileUseCase } from "../../application/useCases/DeleteP
 import { DeletePartNomenclatureUseCase } from "../../application/useCases/DeletePartNomenclatureUseCase";
 import { DeleteReferenceItemUseCase } from "../../application/useCases/DeleteReferenceItemUseCase";
 import { GetAuthUsersUseCase } from "../../application/useCases/GetAuthUsersUseCase";
+import { GetNomenclatureRequestsUseCase } from "../../application/useCases/GetNomenclatureRequestsUseCase";
 import { GetDepartmentsUseCase } from "../../application/useCases/GetDepartmentsUseCase";
 import { GetEmployeesUseCase } from "../../application/useCases/GetEmployeesUseCase";
 import { GetOperationLogsUseCase } from "../../application/useCases/GetOperationLogsUseCase";
@@ -27,6 +30,8 @@ import { GetReferenceItemsUseCase } from "../../application/useCases/GetReferenc
 import { GetStockReportUseCase } from "../../application/useCases/GetStockReportUseCase";
 import { GetStockMovementsUseCase } from "../../application/useCases/GetStockMovementsUseCase";
 import { LoginUseCase } from "../../application/useCases/LoginUseCase";
+import { RejectNomenclatureRequestUseCase } from "../../application/useCases/RejectNomenclatureRequestUseCase";
+import { SubmitNomenclatureRequestUseCase } from "../../application/useCases/SubmitNomenclatureRequestUseCase";
 import { UploadPartDrawingFileUseCase } from "../../application/useCases/UploadPartDrawingFileUseCase";
 import { UpdateAuthUserUseCase } from "../../application/useCases/UpdateAuthUserUseCase";
 import { UpdatePartUseCase } from "../../application/useCases/UpdatePartUseCase";
@@ -37,6 +42,7 @@ import { PostgresAuthUserRepository } from "../../infrastructure/repositories/Po
 import { PostgresDepartmentRepository } from "../../infrastructure/repositories/PostgresDepartmentRepository";
 import { PostgresEmployeeRepository } from "../../infrastructure/repositories/PostgresEmployeeRepository";
 import { PostgresOperationLogRepository } from "../../infrastructure/repositories/PostgresOperationLogRepository";
+import { PostgresNomenclatureRequestRepository } from "../../infrastructure/repositories/PostgresNomenclatureRequestRepository";
 import { PostgresPartDrawingFileRepository } from "../../infrastructure/repositories/PostgresPartDrawingFileRepository";
 import { PostgresPartNomenclatureRepository } from "../../infrastructure/repositories/PostgresPartNomenclatureRepository";
 import { PostgresPartRepository } from "../../infrastructure/repositories/PostgresPartRepository";
@@ -52,6 +58,7 @@ import { AuthUsersController } from "./controllers/AuthUsersController";
 import { DepartmentsController } from "./controllers/DepartmentsController";
 import { EmployeesController } from "./controllers/EmployeesController";
 import { OperationLogsController } from "./controllers/OperationLogsController";
+import { NomenclatureRequestsController } from "./controllers/NomenclatureRequestsController";
 import { PartDrawingFilesController } from "./controllers/PartDrawingFilesController";
 import { PartNomenclatureController } from "./controllers/PartNomenclatureController";
 import { PartsController } from "./controllers/PartsController";
@@ -66,6 +73,7 @@ export function createApiRouter(): Router {
   const authUserRepository = new PostgresAuthUserRepository();
   const partRepository = new PostgresPartRepository();
   const partNomenclatureRepository = new PostgresPartNomenclatureRepository();
+  const nomenclatureRequestRepository = new PostgresNomenclatureRequestRepository();
   const purchaseRepository = new PostgresPurchaseRepository();
   const referenceRepository = new PostgresReferenceRepository();
   const partDrawingFileRepository = new PostgresPartDrawingFileRepository();
@@ -126,6 +134,18 @@ export function createApiRouter(): Router {
       referenceRepository,
     ),
     new DeletePartNomenclatureUseCase(partNomenclatureRepository),
+  );
+
+  const nomenclatureRequestsController = new NomenclatureRequestsController(
+    new GetNomenclatureRequestsUseCase(nomenclatureRequestRepository),
+    new CreateNomenclatureRequestUseCase(
+      nomenclatureRequestRepository,
+      partNomenclatureRepository,
+      referenceRepository,
+    ),
+    new SubmitNomenclatureRequestUseCase(nomenclatureRequestRepository),
+    new ApproveNomenclatureRequestUseCase(nomenclatureRequestRepository),
+    new RejectNomenclatureRequestUseCase(nomenclatureRequestRepository),
   );
 
   const purchasesController = new PurchasesController(
@@ -334,6 +354,58 @@ export function createApiRouter(): Router {
     "/part-nomenclature",
     authenticate,
     partNomenclatureController.getAll,
+  );
+
+  router.get(
+    "/nomenclature-requests",
+    authenticate,
+    nomenclatureRequestsController.getAll,
+  );
+
+  router.post(
+    "/nomenclature-requests",
+    authenticate,
+    audit(
+      "Создание заявки НСИ",
+      "Заявки НСИ",
+      "Создана заявка на изменение нормативно-справочных данных",
+    ),
+    nomenclatureRequestsController.create,
+  );
+
+  router.patch(
+    "/nomenclature-requests/:id/submit",
+    authenticate,
+    audit(
+      "Отправка заявки НСИ",
+      "Заявки НСИ",
+      "Заявка НСИ отправлена на согласование",
+    ),
+    nomenclatureRequestsController.submit,
+  );
+
+  router.patch(
+    "/nomenclature-requests/:id/approve",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Согласование заявки НСИ",
+      "Заявки НСИ",
+      "Заявка НСИ согласована",
+    ),
+    nomenclatureRequestsController.approve,
+  );
+
+  router.patch(
+    "/nomenclature-requests/:id/reject",
+    authenticate,
+    requireAdmin,
+    audit(
+      "Отклонение заявки НСИ",
+      "Заявки НСИ",
+      "Заявка НСИ отклонена",
+    ),
+    nomenclatureRequestsController.reject,
   );
 
   router.post(
