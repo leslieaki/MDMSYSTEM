@@ -55,6 +55,7 @@ import type {
   StockMovementType,
   StockReportItem
 } from "./api";
+import { NsiRequestsPage } from "./NsiRequestsPage";
 import "./styles.css";
 
 type Page =
@@ -2575,18 +2576,7 @@ function App() {
         )}
 
         {activePage === "nomenclature-requests" && (
-          <div className="content-card">
-            <div className="content-card__header">
-              <div>
-                <p>Workflow НСИ</p>
-                <h2>Заявки на изменение мастер-данных</h2>
-              </div>
-            </div>
-            <p className="empty-state">
-              Страница подключена. Следующим шагом добавим загрузку заявок,
-              таблицу статусов, форму создания и кнопки согласования.
-            </p>
-          </div>
+          <NsiRequestsPage role={role} />
         )}
 
         {activePage === "drawings" && (
