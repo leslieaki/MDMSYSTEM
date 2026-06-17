@@ -473,7 +473,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                           )}
 
                           {(item.status === "approved" || item.status === "rejected") && (
-                            <span className="muted-text">Завершена</span>
+                            <span className="muted-text">Завершено</span>
                           )}
 
                           {item.status === "draft" && !canCreateRequests && (

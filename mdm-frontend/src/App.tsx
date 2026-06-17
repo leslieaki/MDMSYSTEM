@@ -972,10 +972,10 @@ function App() {
   const isFormModalOpen = Boolean(partModal || nomenclatureModal || referenceModal);
 
   const backendStatusText = isLoading
-    ? "Проверка backend..."
+    ? "Проверка соединения..."
     : loadError
-      ? "Backend API недоступен"
-      : "Backend API подключен";
+      ? "Сервис недоступен"
+      : "Сервис подключен";
 
   function setPage(nextPage: Page) {
     const safePage: Page = isPageAllowedForRole(nextPage, role)
@@ -2450,7 +2450,7 @@ function App() {
 
       <main className="mdm-main">
         {isLoading && (
-          <div className="system-message">Загрузка данных из backend...</div>
+          <div className="system-message">Загрузка данных...</div>
         )}
 
         {loadError && (
@@ -2749,6 +2749,8 @@ function PartDetailsModal({
   const [isDrawingBusy, setIsDrawingBusy] = useState(false);
   const stockStatus = getPartStockStatus(part);
   const stockProgress = getPartStockProgress(part);
+  const stockDeficit = Math.max(part.minStock - part.stock, 0);
+  const stockDeviation = part.stock - part.minStock;
   const partPurchases = useMemo(() => {
     return purchases
       .filter((purchase) => purchase.partId === part.id)
@@ -2791,9 +2793,9 @@ function PartDetailsModal({
       text: part.supplier ? "Поставщик указан" : "Поставщик не указан"
     },
     {
-      label: "Складской минимум",
+      label: "Норма остатка",
       ok: part.minStock > 0,
-      text: part.minStock > 0 ? "Минимальный остаток задан" : "Минимальный остаток не задан"
+      text: part.minStock > 0 ? "Норма остатка задана" : "Норма остатка не задана"
     },
     {
       label: "Остаток",
@@ -2875,7 +2877,7 @@ function PartDetailsModal({
             <strong>
               {part.stock.toLocaleString("ru-RU")} {part.unit}
             </strong>
-            <p>Минимум: {part.minStock.toLocaleString("ru-RU")} {part.unit}</p>
+            <p>Норма: {part.minStock.toLocaleString("ru-RU")} {part.unit}</p>
           </div>
           <div className="part-detail-summary-card">
             <span>Закупки</span>
@@ -2934,10 +2936,34 @@ function PartDetailsModal({
                 </div>
                 <span className={stockStatus.className}>{stockStatus.title}</span>
               </div>
-              <div className="part-detail-stock-panel">
-                <div className="part-detail-stock-panel__numbers">
-                  <strong>{part.stock.toLocaleString("ru-RU")}</strong>
-                  <span>/ {part.minStock.toLocaleString("ru-RU")} {part.unit}</span>
+              <div className="part-detail-stock-panel part-detail-stock-panel--norms">
+                <div className="part-detail-stock-panel__numbers part-detail-stock-panel__numbers--norms">
+                  <div>
+                    <span>Факт</span>
+                    <strong>{part.stock.toLocaleString("ru-RU")} {part.unit}</strong>
+                  </div>
+                  <div>
+                    <span>Норма</span>
+                    <strong>{part.minStock.toLocaleString("ru-RU")} {part.unit}</strong>
+                  </div>
+                  <div>
+                    <span>Дефицит</span>
+                    <strong className={stockDeficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                      {stockDeficit.toLocaleString("ru-RU")} {part.unit}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Отклонение</span>
+                    <strong
+                      className={
+                        stockDeviation < 0
+                          ? "warehouse-deviation-value warehouse-deviation-value--negative"
+                          : "warehouse-deviation-value warehouse-deviation-value--positive"
+                      }
+                    >
+                      {stockDeviation > 0 ? "+" : ""}{stockDeviation.toLocaleString("ru-RU")} {part.unit}
+                    </strong>
+                  </div>
                 </div>
                 <div className="progress part-detail-stock-panel__progress">
                   <div
@@ -2952,10 +2978,15 @@ function PartDetailsModal({
                   />
                 </div>
                 <p>
-                  {part.stock < part.minStock
-                    ? `Нужно пополнить минимум на ${(part.minStock - part.stock).toLocaleString("ru-RU")} ${part.unit}`
-                    : "Остаток соответствует установленному минимуму"}
+                  {stockDeficit > 0
+                    ? `Дефицит до нормы: ${stockDeficit.toLocaleString("ru-RU")} ${part.unit}`
+                    : "Остаток соответствует установленной норме"}
                 </p>
+                {hasAdminAccess(role) && (
+                  <button className="secondary-button" type="button" onClick={onEdit}>
+                    Изменить норму остатка
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -3016,7 +3047,7 @@ function PartDetailsModal({
                   <img src={drawingImage} alt={`Чертеж ${part.drawing}`} />
                 ) : (
                   <div className="part-detail-drawing-preview__empty">
-                    <span>Файл чертежа не загружен</span>
+                    <span>Файл не загружен</span>
                     <p>{part.drawing}</p>
                   </div>
                 )}
@@ -3082,7 +3113,7 @@ function PartDetailsModal({
           {activeTab === "history" && (
             <div className="part-detail-history-list">
               {relatedHistory.length === 0 ? (
-                <div className="empty-state">Связанных записей журнала по детали не найдено.</div>
+                <div className="empty-state">Записи не найдены.</div>
               ) : (
                 relatedHistory.map((entry) => (
                   <div key={entry.id} className="part-detail-history-item">
@@ -3160,8 +3191,7 @@ function LoginPage({
         <div className="mdm-login-heading">
           <h1>Вход в систему</h1>
           <p>
-            Введите корпоративный логин и пароль. Права доступа проверяются на
-            backend по роли пользователя.
+            Введите корпоративный логин и пароль. Права доступа определяются корпоративной ролью пользователя.
           </p>
         </div>
 
@@ -3676,7 +3706,6 @@ function UsersPage({
             <div className="data-table__row data-table__row--head users-table__row">
               <span>Пользователь</span>
               <span>Подразделение</span>
-              <span>Подразделение</span>
               <span>Роль</span>
               <span>Статус</span>
               <span>Создан</span>
@@ -3738,7 +3767,7 @@ function UsersPage({
             })}
 
             {users.length === 0 && !usersLoadError && (
-              <div className="system-message">Пользователи не найдены</div>
+              <div className="system-message">Пользователи не найдены..</div>
             )}
           </div>
         )}
@@ -4839,7 +4868,7 @@ function PartsPage({
         <div className="parts-table-meta">
           <span>Показано: {filteredParts.length.toLocaleString("ru-RU")}</span>
           <span>Остаток: {totalStock.toLocaleString("ru-RU")}</span>
-          <span>Минимум: {totalMinStock.toLocaleString("ru-RU")}</span>
+          <span>Норма: {totalMinStock.toLocaleString("ru-RU")}</span>
         </div>
 
         {filteredParts.length === 0 ? (
@@ -5295,7 +5324,7 @@ function PurchasesPage({
 
         {filteredPurchases.length === 0 ? (
           <div className="warehouse-empty-state">
-            По заданным фильтрам закупки не найдены
+            Записи не найдены.
           </div>
         ) : (
           <div className="purchases-table-wrap">
@@ -5330,8 +5359,7 @@ function PurchasesPage({
                         <span>{part?.category || "Категория не указана"}</span>
                       </td>
                       <td>
-                        <b>{purchase.quantity}</b>
-                        <span>{part?.unit || "ед."}</span>
+                        <b>{purchase.quantity} {part?.unit || "ед."}</b>
                       </td>
                       <td>
                         <b>{formatMoney(purchase.price)}</b>
@@ -5513,7 +5541,7 @@ function StockMovementsPage({
           {selectedPart && (
             <div className="form-hint" style={{ gridColumn: "1 / -1" }}>
               <span>Текущий остаток: {selectedPart.stock} {selectedPart.unit}</span>
-              <span>Минимум: {selectedPart.minStock}</span>
+              <span>Норма: {selectedPart.minStock}</span>
               <span>Поставщик: {selectedPart.supplier}</span>
             </div>
           )}
@@ -5537,7 +5565,7 @@ function StockMovementsPage({
       </div>
 
       {filteredMovements.length === 0 ? (
-        <div className="system-message">Складских движений пока нет или они не подходят под фильтр.</div>
+        <div className="system-message">Записи не найдены.</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px", minWidth: "1120px" }}>
@@ -5632,8 +5660,7 @@ function ReportsPage({
           <p>Аналитика мастер-данных</p>
           <h2>Отчет по складу и закупкам</h2>
           <span>
-            Отчет строится на backend по таблицам деталей и закупок. Сотрудник
-            просматривает данные, администратор может выгрузить CSV.
+            Складские нормативы, закупки и статусы пополнения.
           </span>
         </div>
 
@@ -5733,7 +5760,7 @@ function ReportsPage({
 
       {items.length === 0 ? (
         <div className="system-message">
-          По текущим фильтрам нет данных для отображения.
+          Данные не найдены.
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -6098,9 +6125,11 @@ function WarehousePage({
                 >
                   {item.stockStatus}
                 </strong>
-                <small>
-                  Факт: {item.stock} · Норма: {item.minStock} · Дефицит: {Math.max(item.minStock - item.stock, 0)} {item.unit}
-                </small>
+                  <div className="warehouse-shortage-metrics">
+                    <span><b>Факт</b><strong>{item.stock.toLocaleString("ru-RU")} {item.unit}</strong></span>
+                    <span><b>Норма</b><strong>{item.minStock.toLocaleString("ru-RU")} {item.unit}</strong></span>
+                    <span><b>Дефицит</b><strong>{Math.max(item.minStock - item.stock, 0).toLocaleString("ru-RU")} {item.unit}</strong></span>
+                  </div>
               </button>
             ))}
           </div>
@@ -6174,7 +6203,7 @@ function WarehousePage({
         </div>
 
         {filteredItems.length === 0 ? (
-          <div className="warehouse-empty-state">По текущим фильтрам позиций нет.</div>
+          <div className="warehouse-empty-state">Позиции не найдены.</div>
         ) : (
           <div className="warehouse-table-wrap">
             <table className="warehouse-table">
@@ -7135,7 +7164,7 @@ function PartModal({
             </label>
 
             <label className="entity-form__field">
-              <span>Минимальный остаток</span>
+              <span>Норма остатка</span>
               <input
                 required
                 className="entity-form__control"
