@@ -262,31 +262,31 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
   }
 
   return (
-    <section className="nsi-requests-page">
+    <section className="nsi_requests_page">
       {actionError && (
-        <div className="system-message system-message--error">{actionError}</div>
+        <div className="system_message _error">{actionError}</div>
       )}
 
-      <div className="metrics-grid">
-        <div className="metric-card">
+      <div className="metrics_grid">
+        <div className="metric_card">
           <p>Всего заявок</p>
           <strong>{metrics.total.toLocaleString("ru-RU")}</strong>
           <span>Изменения мастер-данных</span>
         </div>
 
-        <div className="metric-card">
+        <div className="metric_card">
           <p>Черновики</p>
           <strong>{metrics.draft.toLocaleString("ru-RU")}</strong>
           <span>Подготовка инициатором</span>
         </div>
 
-        <div className="metric-card">
+        <div className="metric_card">
           <p>На согласовании</p>
           <strong>{metrics.pending.toLocaleString("ru-RU")}</strong>
           <span>Ожидают решения</span>
         </div>
 
-        <div className="metric-card">
+        <div className="metric_card">
           <p>Утверждено</p>
           <strong>{metrics.approved.toLocaleString("ru-RU")}</strong>
           <span>Применено к НСИ</span>
@@ -296,13 +296,13 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
       <div
         className={
           canCreateRequests
-            ? "nsi-requests-layout"
-            : "nsi-requests-layout nsi-requests-layout--review"
+            ? "nsi_requests_layout"
+            : "nsi_requests_layout _review"
         }
       >
         {canCreateRequests && (
-          <form className="content-card entity-form" onSubmit={handleCreateRequest}>
-            <div className="content-card__header">
+          <form className="content_card entity_form" onSubmit={handleCreateRequest}>
+            <div className="content_card__header">
               <div>
                 <p>Новая заявка</p>
                 <h2>Изменение карточки НСИ</h2>
@@ -312,7 +312,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
             <label>
               Карточка НСИ
               <select
-                className="entity-form__control"
+                className="entity_form__control"
                 value={form.targetNomenclatureId}
                 onChange={(event) => updateSelectedNomenclature(event.target.value)}
                 required
@@ -327,7 +327,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
             </label>
 
             {form.targetNomenclatureId && (
-              <div className="nsi-selected-card">
+              <div className="nsi_selected_card">
                 <strong>
                   {form.code} · {form.name}
                 </strong>
@@ -338,7 +338,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
             <label>
               Категория
               <select
-                className="entity-form__control"
+                className="entity_form__control"
                 value={form.category}
                 onChange={(event) => updateForm("category", event.target.value)}
                 required
@@ -355,7 +355,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
             <label>
               Материал
               <select
-                className="entity-form__control"
+                className="entity_form__control"
                 value={form.material}
                 onChange={(event) => updateForm("material", event.target.value)}
                 required
@@ -372,44 +372,44 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
             <label>
               Обоснование
               <textarea
-                className="entity-form__control"
+                className="entity_form__control"
                 value={form.comment}
                 onChange={(event) => updateForm("comment", event.target.value)}
                 required
               />
             </label>
 
-            <button className="primary-button" type="submit" disabled={isSaving || !isFormReady}>
+            <button className="primary_button" type="submit" disabled={isSaving || !isFormReady}>
               {isSaving ? "Создание..." : "Отправить на согласование"}
             </button>
           </form>
         )}
 
-        <div className="content-card nsi-requests-table-card">
-          <div className="content-card__header">
+        <div className="content_card nsi_requests_table_card">
+          <div className="content_card__header">
             <div>
               <p>Workflow НСИ</p>
               <h2>Журнал заявок</h2>
             </div>
-            <button className="secondary-button" type="button" onClick={loadData}>
+            <button className="secondary_button" type="button" onClick={loadData}>
               Обновить
             </button>
           </div>
 
           {isLoading ? (
-            <div className="system-message">Загрузка заявок НСИ...</div>
+            <div className="system_message">Загрузка заявок НСИ...</div>
           ) : requests.length === 0 ? (
-            <p className="empty-state">Нет заявок НСИ.</p>
+            <p className="empty_state">Нет заявок НСИ.</p>
           ) : (
-            <div className="nsi-requests-table-wrap">
-              <table className="nsi-requests-table">
+            <div className="nsi_requests_table_wrap">
+              <table className="nsi_requests_table">
                 <thead>
                   <tr>
                     <th>Карточка</th>
                     <th>Статус</th>
                     <th>Инициатор</th>
                     <th>Рассмотрел</th>
-                    <th className="nsi-actions-column">Действия</th>
+                    <th className="nsi_actions_column">Действия</th>
                   </tr>
                 </thead>
 
@@ -424,7 +424,7 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                         </small>
                       </td>
                       <td>
-                        <span className={`nsi-status nsi-status--${item.status}`}>
+                        <span className={`nsi_status _${item.status}`}>
                           {statusLabels[item.status]}
                         </span>
                       </td>
@@ -439,13 +439,13 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                             <span>{formatDateTime(item.reviewedAt)}</span>
                           </>
                         ) : (
-                          <span className="muted-text">—</span>
+                          <span className="muted_text">—</span>
                         )}
                       </td>
-                      <td className="nsi-actions-cell"><div className="nsi-actions">
+                      <td className="nsi_actions_cell"><div className="nsi_actions">
                           {item.status === "draft" && canCreateRequests && (
                             <button
-                              className="secondary-button"
+                              className="secondary_button"
                               type="button"
                               onClick={() => handleSubmitRequest(item.id)}
                             >
@@ -456,14 +456,14 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                           {item.status === "pending" && canReviewRequests && (
                             <>
                               <button
-                                className="primary-button"
+                                className="primary_button"
                                 type="button"
                                 onClick={() => handleApproveRequest(item.id)}
                               >
                                 Утвердить
                               </button>
                               <button
-                                className="secondary-button"
+                                className="secondary_button"
                                 type="button"
                                 onClick={() => handleRejectRequest(item.id)}
                               >
@@ -473,15 +473,15 @@ export function NsiRequestsPage({ role }: { role: AuthUserRole }) {
                           )}
 
                           {(item.status === "approved" || item.status === "rejected") && (
-                            <span className="muted-text">Завершено</span>
+                            <span className="muted_text">Завершено</span>
                           )}
 
                           {item.status === "draft" && !canCreateRequests && (
-                            <span className="muted-text">—</span>
+                            <span className="muted_text">—</span>
                           )}
 
                           {item.status === "pending" && !canReviewRequests && (
-                            <span className="muted-text">На рассмотрении</span>
+                            <span className="muted_text">На рассмотрении</span>
                           )}
                         </div>
                       </td>
