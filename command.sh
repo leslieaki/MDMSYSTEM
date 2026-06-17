@@ -15,10 +15,12 @@ echo "[1/4] Сохраняю текущее состояние перед пра
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
   git add -A
-  git commit -m "chore: backup before mobile sidebar height fix" || true
+  git commit -m "chore: backup before fixed mobile burger fix" || true
+else
+  echo "Нет незакоммиченных изменений для backup-коммита."
 fi
 
-echo "[2/4] Убираю старые mobile sidebar hotfix-блоки, если они были..."
+echo "[2/4] Убираю старый дубль этого фикса, если был..."
 
 python3 <<'PY'
 from pathlib import Path
@@ -27,37 +29,25 @@ import re
 p = Path("mdm-frontend/src/styles.css")
 s = p.read_text(encoding="utf-8")
 
-patterns = [
-    r"\n/\* Mobile clipping hotfix after BEM refactor\. \*/[\s\S]*?(?=\n/\*|\Z)",
-    r"\n/\* Mobile sidebar full height fix\. \*/[\s\S]*?(?=\n/\*|\Z)",
-]
-
-for pattern in patterns:
-    s = re.sub(pattern, "\n", s)
+s = re.sub(
+    r"\n/\* Fixed mobile burger and profile text fix\. \*/[\s\S]*?(?=\n/\*|\Z)",
+    "\n",
+    s
+)
 
 p.write_text(s.rstrip() + "\n", encoding="utf-8")
 PY
 
-echo "[3/4] Добавляю нормальный фикс сайдбара на всю высоту..."
+echo "[3/4] Добавляю нормальный мобильный фикс..."
 
 cat <<'CSS' >> "$CSS_FILE"
 
-/* Mobile sidebar full height fix. */
+/* Fixed mobile burger and profile text fix. */
 @media (max-width: 768px) {
-  html,
-  body,
-  #root {
-    width: 100%;
-    min-width: 0;
-    min-height: 100%;
-    margin: 0;
-    overflow-x: hidden;
-  }
-
   .mdm_app {
+    position: relative;
     width: 100%;
     min-width: 0;
-    min-height: 100dvh;
     overflow-x: hidden;
   }
 
@@ -68,15 +58,45 @@ cat <<'CSS' >> "$CSS_FILE"
     overflow-x: hidden;
   }
 
+  .system_topbar {
+    position: sticky;
+    top: 10px;
+    z-index: 800;
+  }
+
+  .system_topbar button:first-child,
+  .system_topbar__burger,
+  .mobile__burger,
+  .mobile_burger,
+  .burger_button,
+  button[aria-label="Открыть меню"],
+  button[aria-label="Меню"] {
+    position: fixed !important;
+    top: 18px !important;
+    left: max(14px, env(safe-area-inset-left)) !important;
+    z-index: 1200 !important;
+
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+
+    border-radius: 18px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 34, 64, 0.12) !important;
+    box-shadow: 0 14px 32px rgba(15, 34, 64, 0.18) !important;
+  }
+
   .mdm_sidebar {
     position: fixed !important;
-    top: 0 !important;
-    right: auto !important;
-    bottom: 0 !important;
-    left: 0 !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 1100 !important;
 
-    z-index: 1000;
-    width: min(320px, 88vw) !important;
+    width: min(330px, 88vw) !important;
     height: 100vh !important;
     height: 100dvh !important;
     min-height: 100vh !important;
@@ -87,8 +107,9 @@ cat <<'CSS' >> "$CSS_FILE"
     margin: 0 !important;
     border-radius: 0 !important;
     box-sizing: border-box;
-    overflow-y: auto;
-    overflow-x: hidden;
+
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     overscroll-behavior: contain;
 
     transform: translateX(-105%);
@@ -99,20 +120,80 @@ cat <<'CSS' >> "$CSS_FILE"
   }
 
   .mobile__overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000 !important;
+  }
+
+  .profile_card,
+  .profile_card__person,
+  .profile_card__person > div,
+  .profile_card__person > div:last-child {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .profile_card__person {
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: center !important;
+  }
+
+  .profile_card__person b {
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+
+    font-size: clamp(13px, 4vw, 16px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .profile_card__role {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 }
 
-@media (max-width: 480px) {
-  .mdm_sidebar {
-    width: min(300px, 90vw) !important;
+@media (max-width: 360px) {
+  .system_topbar button:first-child,
+  .system_topbar__burger,
+  .mobile__burger,
+  .mobile_burger,
+  .burger_button,
+  button[aria-label="Открыть меню"],
+  button[aria-label="Меню"] {
+    top: 14px !important;
+    left: 10px !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    border-radius: 16px !important;
+  }
+
+  .profile_card__person {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .profile_card__person b {
+    font-size: 13px !important;
   }
 }
 CSS
 
-echo "[4/4] Проверяю, коммичу и пушу..."
+echo "[4/4] Проверяю сборку и делаю только локальный коммит..."
 
 cd mdm-frontend
 npm run build
@@ -121,10 +202,12 @@ cd "$ROOT"
 git add "$CSS_FILE"
 
 if git diff --cached --quiet; then
-  echo "Изменений нет."
+  echo "Изменений нет, коммит не создан."
 else
-  git commit -m "fix: stretch mobile sidebar to full viewport height"
-  git push origin HEAD
+  git commit -m "fix: keep mobile burger accessible while scrolling"
 fi
 
-echo "Готово. Перезапусти фронт и обнови страницу Ctrl + F5."
+echo "Готово. Push НЕ выполнялся."
+echo "Обнови страницу Ctrl + F5."
+echo "Проверь последние коммиты:"
+echo "git log --oneline -3"
