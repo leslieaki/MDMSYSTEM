@@ -58,7 +58,6 @@ import type {
 import { NsiRequestsPage } from "./NsiRequestsPage";
 import logoUrl from "./assets/logo.png";
 import "./styles.css";
-import "./enterprise.css";
 
 type Page =
   | "dashboard"
@@ -774,7 +773,7 @@ function getPartStockStatus(part: Part): {
 } {
   if (part.stock <= 0) {
     return {
-      className: "warehouse-status warehouse-status--danger",
+      className: "warehouse_status _danger",
       tone: "danger",
       title: "Дефицит"
     };
@@ -782,14 +781,14 @@ function getPartStockStatus(part: Part): {
 
   if (part.stock < part.minStock) {
     return {
-      className: "warehouse-status warehouse-status--warning",
+      className: "warehouse_status _warning",
       tone: "warning",
       title: "Низкий остаток"
     };
   }
 
   return {
-    className: "warehouse-status warehouse-status--success",
+    className: "warehouse_status _success",
     tone: "success",
     title: "Норма"
   };
@@ -2429,7 +2428,7 @@ function App() {
   }
 
   return (
-    <div className="mdm-app">
+    <div className="mdm_app">
       <button
         aria-label="Закрыть меню"
         className={isMobileMenuOpen ? "mobile__overlay _open" : "mobile__overlay"}
@@ -2448,17 +2447,17 @@ function App() {
         onLogout={logout}
       />
 
-      <main className="mdm-main">
+      <main className="mdm_main">
         {isLoading && (
-          <div className="system-message">Загрузка данных...</div>
+          <div className="system_message">Загрузка данных...</div>
         )}
 
         {loadError && (
-          <div className="system-message system-message--error">{loadError}</div>
+          <div className="system_message _error">{loadError}</div>
         )}
 
         {actionError && !isFormModalOpen && (
-          <div className="system-message system-message--error">
+          <div className="system_message _error">
             {actionError}
           </div>
         )}
@@ -2474,7 +2473,7 @@ function App() {
 
         <PageHeader page={activePage} />
 
-        <section key={activePage} className="page-shell" aria-live="polite">
+        <section key={activePage} className="page_shell" aria-live="polite">
         {activePage === "dashboard" && (
           <DashboardPage
             deficitParts={deficitParts}
@@ -2846,12 +2845,12 @@ function PartDetailsModal({
 
   return (
     <ModalBackdrop onClose={onClose}>
-      <article className="part-details-modal" role="dialog" aria-modal="true">
-        <header className="part-details-modal__header">
-          <div className="part-details-modal__title-block">
-            <span className="part-details-modal__eyebrow">MDM-карточка детали</span>
+      <article className="part_details_modal" role="dialog" aria-modal="true">
+        <header className="part_details_modal__header">
+          <div className="part_details_modal__title_block">
+            <span className="part_details_modal__eyebrow">MDM-карточка детали</span>
             <h2>{part.name}</h2>
-            <div className="part-details-modal__meta">
+            <div className="part_details_modal__meta">
               <b>{part.code}</b>
               <span>{part.category}</span>
               <span>{part.material}</span>
@@ -2859,51 +2858,51 @@ function PartDetailsModal({
             </div>
           </div>
 
-          <div className="part-details-modal__actions">
+          <div className="part_details_modal__actions">
             {hasAdminAccess(role) && (
-              <button className="secondary-button" type="button" onClick={onEdit}>
+              <button className="secondary_button" type="button" onClick={onEdit}>
                 Редактировать
               </button>
             )}
-            <button className="modal-close" type="button" onClick={onClose}>
+            <button className="modal_close" type="button" onClick={onClose}>
               ×
             </button>
           </div>
         </header>
 
-        <section className="part-details-modal__summary">
-          <div className="part-detail-summary-card">
+        <section className="part_details_modal__summary">
+          <div className="part_detail_summary_card">
             <span>Остаток</span>
             <strong>
               {part.stock.toLocaleString("ru-RU")} {part.unit}
             </strong>
             <p>Норма: {part.minStock.toLocaleString("ru-RU")} {part.unit}</p>
           </div>
-          <div className="part-detail-summary-card">
+          <div className="part_detail_summary_card">
             <span>Закупки</span>
             <strong>{partPurchases.length.toLocaleString("ru-RU")}</strong>
             <p>{formatMoney(purchaseTotal)}</p>
           </div>
-          <div className="part-detail-summary-card">
+          <div className="part_detail_summary_card">
             <span>Качество данных</span>
             <strong>{qualityScore}%</strong>
             <p>{qualityChecks.filter((item) => !item.ok).length === 0 ? "Замечаний нет" : "Есть замечания"}</p>
           </div>
-          <div className="part-detail-summary-card">
+          <div className="part_detail_summary_card">
             <span>Чертеж</span>
             <strong>{drawingImage ? "Есть" : "Нет"}</strong>
             <p>{part.drawing}</p>
           </div>
         </section>
 
-        <nav className="part-details-tabs" aria-label="Разделы карточки детали">
+        <nav className="part_details_tabs" aria-label="Разделы карточки детали">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               className={
                 activeTab === tab.id
-                  ? "part-details-tabs__button part-details-tabs__button--active"
-                  : "part-details-tabs__button"
+                  ? "part_details_tabs__button _active"
+                  : "part_details_tabs__button"
               }
               type="button"
               onClick={() => setActiveTab(tab.id)}
@@ -2913,9 +2912,9 @@ function PartDetailsModal({
           ))}
         </nav>
 
-        <section className="part-details-modal__body">
+        <section className="part_details_modal__body">
           {activeTab === "passport" && (
-            <div className="part-detail-grid">
+            <div className="part_detail_grid">
               <DetailField label="Код" value={part.code} />
               <DetailField label="Наименование" value={part.name} />
               <DetailField label="Категория" value={part.category} />
@@ -2928,16 +2927,16 @@ function PartDetailsModal({
           )}
 
           {activeTab === "warehouse" && (
-            <div className="part-detail-section">
-              <div className="part-detail-section__header">
+            <div className="part_detail_section">
+              <div className="part_detail_section__header">
                 <div>
                   <p>Складской контроль</p>
                   <h3>{stockStatus.title}</h3>
                 </div>
                 <span className={stockStatus.className}>{stockStatus.title}</span>
               </div>
-              <div className="part-detail-stock-panel part-detail-stock-panel--norms">
-                <div className="part-detail-stock-panel__numbers part-detail-stock-panel__numbers--norms">
+              <div className="part_detail_stock_panel _norms">
+                <div className="part_detail_stock_panel__numbers _norms">
                   <div>
                     <span>Факт</span>
                     <strong>{part.stock.toLocaleString("ru-RU")} {part.unit}</strong>
@@ -2948,7 +2947,7 @@ function PartDetailsModal({
                   </div>
                   <div>
                     <span>Дефицит</span>
-                    <strong className={stockDeficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                    <strong className={stockDeficit > 0 ? "warehouse_deficit_value" : "warehouse_neutral_value"}>
                       {stockDeficit.toLocaleString("ru-RU")} {part.unit}
                     </strong>
                   </div>
@@ -2957,21 +2956,21 @@ function PartDetailsModal({
                     <strong
                       className={
                         stockDeviation < 0
-                          ? "warehouse-deviation-value warehouse-deviation-value--negative"
-                          : "warehouse-deviation-value warehouse-deviation-value--positive"
+                          ? "warehouse_deviation_value _negative"
+                          : "warehouse_deviation_value _positive"
                       }
                     >
                       {stockDeviation > 0 ? "+" : ""}{stockDeviation.toLocaleString("ru-RU")} {part.unit}
                     </strong>
                   </div>
                 </div>
-                <div className="progress part-detail-stock-panel__progress">
+                <div className="progress part_detail_stock_panel__progress">
                   <div
                     className={
                       stockStatus.tone === "danger"
-                        ? "progress__bar progress__bar--danger"
+                        ? "progress__bar _danger"
                         : stockStatus.tone === "warning"
-                          ? "progress__bar progress__bar--warning"
+                          ? "progress__bar _warning"
                           : "progress__bar"
                     }
                     style={{ width: `${stockProgress}%` }}
@@ -2983,7 +2982,7 @@ function PartDetailsModal({
                     : "Остаток соответствует установленной норме"}
                 </p>
                 {hasAdminAccess(role) && (
-                  <button className="secondary-button" type="button" onClick={onEdit}>
+                  <button className="secondary_button" type="button" onClick={onEdit}>
                     Изменить норму остатка
                   </button>
                 )}
@@ -2992,8 +2991,8 @@ function PartDetailsModal({
           )}
 
           {activeTab === "purchases" && (
-            <div className="part-detail-section">
-              <div className="part-detail-section__header">
+            <div className="part_detail_section">
+              <div className="part_detail_section__header">
                 <div>
                   <p>Закупочная история</p>
                   <h3>{partPurchases.length.toLocaleString("ru-RU")} операций</h3>
@@ -3002,10 +3001,10 @@ function PartDetailsModal({
               </div>
 
               {partPurchases.length === 0 ? (
-                <div className="empty-state">По этой детали пока нет закупочных операций.</div>
+                <div className="empty_state">По этой детали пока нет закупочных операций.</div>
               ) : (
-                <div className="part-detail-table-wrap">
-                  <table className="data-table part-detail-table">
+                <div className="part_detail_table_wrap">
+                  <table className="data_table part_detail_table">
                     <thead>
                       <tr>
                         <th>Дата</th>
@@ -3024,7 +3023,7 @@ function PartDetailsModal({
                           <td>{purchase.employee}</td>
                           <td>
                             <button
-                              className="secondary-button"
+                              className="secondary_button"
                               type="button"
                               onClick={() => onOpenPurchase(purchase)}
                             >
@@ -3041,26 +3040,26 @@ function PartDetailsModal({
           )}
 
           {activeTab === "drawing" && (
-            <div className="part-detail-drawing-layout">
-              <div className="part-detail-drawing-preview">
+            <div className="part_detail_drawing_layout">
+              <div className="part_detail_drawing_preview">
                 {drawingImage ? (
                   <img src={drawingImage} alt={`Чертеж ${part.drawing}`} />
                 ) : (
-                  <div className="part-detail-drawing-preview__empty">
+                  <div className="part_detail_drawing_preview__empty">
                     <span>Файл не загружен</span>
                     <p>{part.drawing}</p>
                   </div>
                 )}
               </div>
 
-              <div className="part-detail-drawing-info">
+              <div className="part_detail_drawing_info">
                 <DetailField label="Обозначение" value={part.drawing} />
                 <DetailField label="Статус файла" value={drawingImage ? "Загружен" : "Не загружен"} />
                 <DetailField label="Материал" value={part.material} />
 
                 {hasAdminAccess(role) && (
-                  <div className="part-detail-drawing-actions">
-                    <label className="secondary-button part-detail-upload-button">
+                  <div className="part_detail_drawing_actions">
+                    <label className="secondary_button part_detail_upload_button">
                       {isDrawingBusy ? "Загрузка..." : "Загрузить файл"}
                       <input
                         accept="image/*"
@@ -3075,7 +3074,7 @@ function PartDetailsModal({
 
                     {drawingImage && (
                       <button
-                        className="danger-button"
+                        className="danger_button"
                         disabled={isDrawingBusy}
                         type="button"
                         onClick={() => void removeDrawing()}
@@ -3090,14 +3089,14 @@ function PartDetailsModal({
           )}
 
           {activeTab === "quality" && (
-            <div className="part-detail-quality-list">
+            <div className="part_detail_quality_list">
               {qualityChecks.map((check) => (
                 <div
                   key={check.label}
                   className={
                     check.ok
-                      ? "part-detail-quality-item part-detail-quality-item--ok"
-                      : "part-detail-quality-item part-detail-quality-item--problem"
+                      ? "part_detail_quality_item _ok"
+                      : "part_detail_quality_item _problem"
                   }
                 >
                   <div>
@@ -3111,12 +3110,12 @@ function PartDetailsModal({
           )}
 
           {activeTab === "history" && (
-            <div className="part-detail-history-list">
+            <div className="part_detail_history_list">
               {relatedHistory.length === 0 ? (
-                <div className="empty-state">Записи не найдены.</div>
+                <div className="empty_state">Записи не найдены.</div>
               ) : (
                 relatedHistory.map((entry) => (
-                  <div key={entry.id} className="part-detail-history-item">
+                  <div key={entry.id} className="part_detail_history_item">
                     <span>{formatDateTime(entry.createdAt)}</span>
                     <b>{entry.action}</b>
                     <p>{entry.description}</p>
@@ -3134,7 +3133,7 @@ function PartDetailsModal({
 
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="detail-field">
+    <div className="detail_field">
       <span>{label}</span>
       <strong>{value || "—"}</strong>
     </div>
@@ -3150,7 +3149,7 @@ function ModalBackdrop({
 }) {
   return (
     <div
-      className="modal-backdrop"
+      className="modal_backdrop"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -3178,17 +3177,17 @@ function LoginPage({
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   return (
-    <main className="mdm-login-page">
-      <section className="mdm-login-card">
-        <div className="mdm-logo mdm-logo--login">
-          <img className="mdm-logo__mark mdm-logo__mark--image" src={logoUrl} alt="Логотип предприятия" />
-          <div className="mdm-logo__content">
+    <main className="mdm_login_page">
+      <section className="mdm_login_card">
+        <div className="mdm_logo _login">
+          <img className="mdm_logo__mark _image" src={logoUrl} alt="Логотип предприятия" />
+          <div className="mdm_logo__content">
             <b>Корпоративная система мастер-данных</b>
             <span>авторизация пользователя</span>
           </div>
         </div>
 
-        <div className="mdm-login-heading">
+        <div className="mdm_login_heading">
           <h1>Вход в систему</h1>
           <p>
             Введите корпоративный логин и пароль. Права доступа определяются корпоративной ролью пользователя.
@@ -3196,11 +3195,11 @@ function LoginPage({
         </div>
 
         {error && (
-          <div className="system-message system-message--error">{error}</div>
+          <div className="system_message _error">{error}</div>
         )}
 
-        <form className="mdm-login-form" onSubmit={onSubmit}>
-          <label className="mdm-login-form__field">
+        <form className="mdm_login_form" onSubmit={onSubmit}>
+          <label className="mdm_login_form__field">
             <span>Логин</span>
             <input
               autoComplete="username"
@@ -3210,10 +3209,10 @@ function LoginPage({
             />
           </label>
 
-          <label className="mdm-login-form__field">
+          <label className="mdm_login_form__field">
             <span>Пароль</span>
 
-            <div className="mdm-login-form__password">
+            <div className="mdm_login_form__password">
               <input
                 autoComplete="current-password"
                 type={isPasswordVisible ? "text" : "password"}
@@ -3228,7 +3227,7 @@ function LoginPage({
                 aria-label={
                   isPasswordVisible ? "Скрыть пароль" : "Показать пароль"
                 }
-                className="mdm-login-form__toggle"
+                className="mdm_login_form__toggle"
                 disabled={isSubmitting}
                 onClick={() =>
                   setIsPasswordVisible((currentValue) => !currentValue)
@@ -3240,16 +3239,16 @@ function LoginPage({
             </div>
           </label>
 
-          <div className="mdm-login-form__submit">
+          <div className="mdm_login_form__submit">
             <button
-              className="primary-button mdm-login-form__button"
+              className="primary_button mdm_login_form__button"
               disabled={isSubmitting}
               type="submit"
             >
               {isSubmitting && (
                 <span
                   aria-hidden="true"
-                  className="mdm-login-form__loader"
+                  className="mdm_login_form__loader"
                 />
               )}
 
@@ -3517,8 +3516,8 @@ function UsersPage({
   }
 
   return (
-    <section className="users-page">
-      <div className="metrics-grid users-page__metrics">
+    <section className="users_page">
+      <div className="metrics_grid users_page__metrics">
         <MetricCard
           title="Всего учетных записей"
           value={String(users.length)}
@@ -3547,10 +3546,10 @@ function UsersPage({
         />
       </div>
 
-      <section className="content-card users-create-card">
-        <div className="content-card__header">
+      <section className="content_card users_create_card">
+        <div className="content_card__header">
           <div>
-            <p className="content-card__eyebrow">Новая учетная запись</p>
+            <p className="content_card__eyebrow">Новая учетная запись</p>
             <h2>Создать пользователя</h2>
             <span>
               Суперадминистратор может создавать администраторов и сотрудников.
@@ -3560,17 +3559,17 @@ function UsersPage({
         </div>
 
         {usersActionError && (
-          <div className="system-message system-message--error">
+          <div className="system_message _error">
             {usersActionError}
           </div>
         )}
 
-        <form className="entity-form users-form" onSubmit={submitCreateUser}>
-          <div className="entity-form__row users-form__row">
-            <label className="entity-form__field">
+        <form className="entity_form users_form" onSubmit={submitCreateUser}>
+          <div className="entity_form__row users_form__row">
+            <label className="entity_form__field">
               <span>Логин</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 value={createForm.username}
                 onChange={(event) =>
                   updateCreateForm("username", event.target.value)
@@ -3579,10 +3578,10 @@ function UsersPage({
               />
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Фамилия</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 required
                 value={createForm.lastName}
                 onChange={(event) =>
@@ -3592,10 +3591,10 @@ function UsersPage({
               />
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Имя</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 required
                 value={createForm.firstName}
                 onChange={(event) =>
@@ -3606,11 +3605,11 @@ function UsersPage({
             </label>
           </div>
 
-          <div className="entity-form__row users-form__row">
-            <label className="entity-form__field">
+          <div className="entity_form__row users_form__row">
+            <label className="entity_form__field">
               <span>Отчество</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 value={createForm.middleName}
                 onChange={(event) =>
                   updateCreateForm("middleName", event.target.value)
@@ -3619,10 +3618,10 @@ function UsersPage({
               />
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Подразделение</span>
               <select
-                className="entity-form__control"
+                className="entity_form__control"
                 required
                 value={createForm.departmentId}
                 onChange={(event) =>
@@ -3638,10 +3637,10 @@ function UsersPage({
               </select>
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Роль</span>
               <select
-                className="entity-form__control"
+                className="entity_form__control"
                 value={createForm.role}
                 onChange={(event) => updateCreateForm("role", event.target.value)}
               >
@@ -3653,10 +3652,10 @@ function UsersPage({
               </select>
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Пароль</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 type="password"
                 value={createForm.password}
                 onChange={(event) =>
@@ -3667,16 +3666,16 @@ function UsersPage({
             </label>
           </div>
 
-          <button className="primary-button" disabled={isSavingUser} type="submit">
+          <button className="primary_button" disabled={isSavingUser} type="submit">
             {isSavingUser ? "Сохранение..." : "Создать пользователя"}
           </button>
         </form>
       </section>
 
-      <section className="content-card users-table-card">
-        <div className="content-card__header">
+      <section className="content_card users_table_card">
+        <div className="content_card__header">
           <div>
-            <p className="content-card__eyebrow">Учетные записи</p>
+            <p className="content_card__eyebrow">Учетные записи</p>
             <h2>Пользователи системы</h2>
             <span>
               Отключение пользователя блокирует вход без удаления истории операций.
@@ -3684,7 +3683,7 @@ function UsersPage({
           </div>
 
           <button
-            className="secondary-button secondary-button--large"
+            className="secondary_button _large"
             disabled={isLoadingUsers}
             type="button"
             onClick={() => void loadUsers()}
@@ -3694,16 +3693,16 @@ function UsersPage({
         </div>
 
         {usersLoadError && (
-          <div className="system-message system-message--error">
+          <div className="system_message _error">
             {usersLoadError}
           </div>
         )}
 
         {isLoadingUsers ? (
-          <div className="system-message">Загрузка пользователей...</div>
+          <div className="system_message">Загрузка пользователей...</div>
         ) : (
-          <div className="data-table users-table">
-            <div className="data-table__row data-table__row--head users-table__row">
+          <div className="data_table users_table">
+            <div className="data_table__row _head users_table__row">
               <span>Пользователь</span>
               <span>Подразделение</span>
               <span>Роль</span>
@@ -3725,7 +3724,7 @@ function UsersPage({
               );
 
               return (
-                <div className="data-table__row users-table__row" key={user.id}>
+                <div className="data_table__row users_table__row" key={user.id}>
                   <span>
                     <b>{user.displayName}</b>
                     <small>{user.username}</small>
@@ -3736,17 +3735,17 @@ function UsersPage({
                     <b
                       className={
                         user.isActive
-                          ? "users-status users-status--active"
-                          : "users-status users-status--blocked"
+                          ? "users_status _active"
+                          : "users_status _blocked"
                       }
                     >
                       {user.isActive ? "Активен" : "Отключен"}
                     </b>
                   </span>
                   <span>{formatDateTime(user.createdAt)}</span>
-                  <span className="users-table__actions">
+                  <span className="users_table__actions">
                     <button
-                      className="secondary-button"
+                      className="secondary_button"
                       disabled={!canEditUser}
                       type="button"
                       onClick={() => startEditUser(user)}
@@ -3754,7 +3753,7 @@ function UsersPage({
                       Изменить
                     </button>
                     <button
-                      className="secondary-button"
+                      className="secondary_button"
                       disabled={!canChangePassword}
                       type="button"
                       onClick={() => startPasswordChange(user)}
@@ -3767,32 +3766,32 @@ function UsersPage({
             })}
 
             {users.length === 0 && !usersLoadError && (
-              <div className="system-message">Пользователи не найдены..</div>
+              <div className="system_message">Пользователи не найдены..</div>
             )}
           </div>
         )}
       </section>
 
       {editingUser && (
-        <section className="content-card users-edit-card">
-          <div className="content-card__header">
+        <section className="content_card users_edit_card">
+          <div className="content_card__header">
             <div>
-              <p className="content-card__eyebrow">Редактирование</p>
+              <p className="content_card__eyebrow">Редактирование</p>
               <h2>{editingUser.displayName}</h2>
               <span>Логин: {editingUser.username}</span>
             </div>
 
-            <button className="secondary-button" type="button" onClick={cancelEditUser}>
+            <button className="secondary_button" type="button" onClick={cancelEditUser}>
               Отмена
             </button>
           </div>
 
-          <form className="entity-form users-form" onSubmit={submitEditUser}>
-            <div className="entity-form__row users-form__row">
-              <label className="entity-form__field">
+          <form className="entity_form users_form" onSubmit={submitEditUser}>
+            <div className="entity_form__row users_form__row">
+              <label className="entity_form__field">
                 <span>Фамилия</span>
                 <input
-                  className="entity-form__control"
+                  className="entity_form__control"
                   required
                   value={editForm.lastName}
                   onChange={(event) =>
@@ -3801,10 +3800,10 @@ function UsersPage({
                 />
               </label>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Имя</span>
                 <input
-                  className="entity-form__control"
+                  className="entity_form__control"
                   required
                   value={editForm.firstName}
                   onChange={(event) =>
@@ -3813,10 +3812,10 @@ function UsersPage({
                 />
               </label>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Отчество</span>
                 <input
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={editForm.middleName}
                   onChange={(event) =>
                     updateEditForm("middleName", event.target.value)
@@ -3824,10 +3823,10 @@ function UsersPage({
                 />
               </label>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Подразделение</span>
                 <select
-                  className="entity-form__control"
+                  className="entity_form__control"
                   disabled={editingUser.role === "superadmin"}
                   required={editingUser.role !== "superadmin"}
                   value={editForm.departmentId}
@@ -3844,10 +3843,10 @@ function UsersPage({
                 </select>
               </label>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Роль</span>
                 <select
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={editForm.role}
                   disabled={editingUser.role === "superadmin"}
                   onChange={(event) => updateEditForm("role", event.target.value)}
@@ -3861,7 +3860,7 @@ function UsersPage({
               </label>
             </div>
 
-            <label className="users-toggle">
+            <label className="users_toggle">
               <input
                 checked={editForm.isActive}
                 disabled={editingUser.id === currentUserId || editingUser.role === "superadmin"}
@@ -3874,18 +3873,18 @@ function UsersPage({
             </label>
 
             {editingUser.id === currentUserId && (
-              <p className="form-hint">
+              <p className="form_hint">
                 Собственную учетную запись нельзя отключить из интерфейса.
               </p>
             )}
 
             {editingUser.role === "superadmin" && (
-              <p className="form-hint">
+              <p className="form_hint">
                 Суперадминистратор в системе единственный: роль и активность не изменяются.
               </p>
             )}
 
-            <button className="primary-button" disabled={isSavingUser} type="submit">
+            <button className="primary_button" disabled={isSavingUser} type="submit">
               {isSavingUser ? "Сохранение..." : "Сохранить изменения"}
             </button>
           </form>
@@ -3893,16 +3892,16 @@ function UsersPage({
       )}
 
       {passwordUser && (
-        <section className="content-card users-edit-card">
-          <div className="content-card__header">
+        <section className="content_card users_edit_card">
+          <div className="content_card__header">
             <div>
-              <p className="content-card__eyebrow">Смена пароля</p>
+              <p className="content_card__eyebrow">Смена пароля</p>
               <h2>{passwordUser.displayName}</h2>
               <span>Новый пароль начнет действовать при следующем входе.</span>
             </div>
 
             <button
-              className="secondary-button"
+              className="secondary_button"
               type="button"
               onClick={cancelPasswordChange}
             >
@@ -3910,11 +3909,11 @@ function UsersPage({
             </button>
           </div>
 
-          <form className="entity-form users-form" onSubmit={submitPasswordChange}>
-            <label className="entity-form__field">
+          <form className="entity_form users_form" onSubmit={submitPasswordChange}>
+            <label className="entity_form__field">
               <span>Новый пароль</span>
               <input
-                className="entity-form__control"
+                className="entity_form__control"
                 type="password"
                 value={passwordForm.password}
                 onChange={(event) =>
@@ -3924,7 +3923,7 @@ function UsersPage({
               />
             </label>
 
-            <button className="primary-button" disabled={isSavingUser} type="submit">
+            <button className="primary_button" disabled={isSavingUser} type="submit">
               {isSavingUser ? "Сохранение..." : "Сменить пароль"}
             </button>
           </form>
@@ -3969,20 +3968,20 @@ function Sidebar({
   }, [menu]);
 
   return (
-    <aside className={isOpen ? "mdm-sidebar _open" : "mdm-sidebar"}>
-      <div className="mdm-logo">
-        <img className="mdm-logo__mark mdm-logo__mark--image" src={logoUrl} alt="Логотип предприятия" />
-        <div className="mdm-logo__content">
+    <aside className={isOpen ? "mdm_sidebar _open" : "mdm_sidebar"}>
+      <div className="mdm_logo">
+        <img className="mdm_logo__mark _image" src={logoUrl} alt="Логотип предприятия" />
+        <div className="mdm_logo__content">
           <b>Система мастер-данных</b>
           <span>Корпоративный контур предприятия</span>
         </div>
       </div>
 
-      <section className="profile-card">
-        <span className="profile-card__caption">Текущий пользователь</span>
+      <section className="profile_card">
+        <span className="profile_card__caption">Текущий пользователь</span>
 
-        <div className="profile-card__person">
-          <div className="profile-card__avatar">
+        <div className="profile_card__person">
+          <div className="profile_card__avatar">
             {getUserDisplayTitle(authSession.user).slice(0, 1)}
           </div>
 
@@ -3992,7 +3991,7 @@ function Sidebar({
           </div>
         </div>
 
-        <div className="profile-card__meta">
+        <div className="profile_card__meta">
           <span>
             {authSession.user.departmentName ||
               currentEmployee?.department ||
@@ -4001,39 +4000,39 @@ function Sidebar({
           <b
             className={
               role === "superadmin"
-                ? "profile-card__role profile-card__role--superadmin"
+                ? "profile_card__role _superadmin"
                 : role === "admin"
-                  ? "profile-card__role profile-card__role--admin"
-                  : "profile-card__role profile-card__role--worker"
+                  ? "profile_card__role _admin"
+                  : "profile_card__role _worker"
             }
           >
             {getRoleTitle(role)}
           </b>
         </div>
 
-        <button className="secondary-button" type="button" onClick={onLogout}>
+        <button className="secondary_button" type="button" onClick={onLogout}>
           Выйти
         </button>
       </section>
 
-      <nav className="mdm-nav">
+      <nav className="mdm_nav">
         {groupedMenu.map(([group, items]) => (
-          <section className="mdm-nav__group" key={group}>
-            <p className="mdm-nav__group-title">{getMenuGroupTitle(group)}</p>
+          <section className="mdm_nav__group" key={group}>
+            <p className="mdm_nav__group_title">{getMenuGroupTitle(group)}</p>
 
             {items.map((item) => (
               <button
                 key={item.id}
                 className={
                   page === item.id
-                    ? "mdm-nav__button mdm-nav__button--active"
-                    : "mdm-nav__button"
+                    ? "mdm_nav__button _active"
+                    : "mdm_nav__button"
                 }
                 type="button"
                 onClick={() => onChangePage(item.id)}
               >
-                <span className="mdm-nav__title">{item.title}</span>
-                <span className="mdm-nav__subtitle">{item.subtitle}</span>
+                <span className="mdm_nav__title">{item.title}</span>
+                <span className="mdm_nav__subtitle">{item.subtitle}</span>
               </button>
             ))}
           </section>
@@ -4066,7 +4065,7 @@ function SystemTopbar({
   }).format(new Date());
 
   return (
-    <section className="system-topbar">
+    <section className="system_topbar">
       <div className="topbar__left">
         <button
           aria-label="Открыть меню"
@@ -4086,14 +4085,14 @@ function SystemTopbar({
         </div>
       </div>
 
-      <div className="system-topbar__right">
-        <span className="system-chip">{currentDate}</span>
-        <span className="system-chip">{getRoleTitle(role)}</span>
+      <div className="system_topbar__right">
+        <span className="system_chip">{currentDate}</span>
+        <span className="system_chip">{getRoleTitle(role)}</span>
         <span
           className={
             hasError
-              ? "system-chip system-chip--error"
-              : "system-chip system-chip--success"
+              ? "system_chip _error"
+              : "system_chip _success"
           }
         >
           <i />
@@ -4106,11 +4105,11 @@ function SystemTopbar({
 
 function PageHeader({ page }: { page: Page }) {
   return (
-    <header className="page-header">
+    <header className="page_header">
       <div>
-        <p className="page-header__eyebrow">Корпоративная система мастер-данных</p>
-        <h1 className="page-header__title">{getPageTitle(page)}</h1>
-        <p className="page-header__description">{getPageDescription(page)}</p>
+        <p className="page_header__eyebrow">Корпоративная система мастер-данных</p>
+        <h1 className="page_header__title">{getPageTitle(page)}</h1>
+        <p className="page_header__description">{getPageDescription(page)}</p>
       </div>
     </header>
   );
@@ -4184,26 +4183,22 @@ function DashboardPage({
     : 100;
 
   return (
-    <section className="dashboard-page dashboard-page--control">
-      <section className="content-card mdm-quality-panel">
-        <div className="content-card__header">
+    <section className="dashboard_page _control">
+      <section className="content_card mdm_quality_panel">
+        <div className="content_card__header">
           <div>
             <p>Качество НСИ</p>
             <h2>Контроль мастер-данных предприятия</h2>
           </div>
 
           <span
-            className={`mdm-quality-score ${
-              mdmQualityReport && mdmQualityReport.qualityScore < 70
-                ? "mdm-quality-score--warning"
-                : ""
-            }`}
+            className={`mdm_quality_score ${ mdmQualityReport && mdmQualityReport.qualityScore < 70 ? "_warning" : "" }`}
           >
             {mdmQualityReport ? `${mdmQualityReport.qualityScore}%` : "—"}
           </span>
         </div>
 
-        <div className="mdm-quality-summary">
+        <div className="mdm_quality_summary">
           <div>
             <span>Карточек</span>
             <strong>{mdmQualityReport?.totalParts ?? parts.length}</strong>
@@ -4222,12 +4217,12 @@ function DashboardPage({
           </div>
         </div>
 
-        <div className="mdm-quality-issues">
+        <div className="mdm_quality_issues">
           {mdmQualityReport ? (
             mdmQualityReport.issues.length > 0 ? (
               mdmQualityReport.issues.slice(0, 4).map((issue) => (
                 <article
-                  className={`mdm-quality-issue mdm-quality-issue--${issue.severity}`}
+                  className={`mdm_quality_issue _${issue.severity}`}
                   key={issue.code}
                 >
                   <div>
@@ -4238,16 +4233,16 @@ function DashboardPage({
                 </article>
               ))
             ) : (
-              <p className="empty-state">Критичных проблем качества мастер-данных не найдено.</p>
+              <p className="empty_state">Критичных проблем качества мастер-данных не найдено.</p>
             )
           ) : (
-            <p className="empty-state">Отчёт качества мастер-данных загружается.</p>
+            <p className="empty_state">Отчёт качества мастер-данных загружается.</p>
           )}
         </div>
       </section>
-      <section className="control-hero">
-        <div className="control-hero__content">
-          <p className="control-hero__eyebrow">Оперативный центр</p>
+      <section className="control_hero">
+        <div className="control_hero__content">
+          <p className="control_hero__eyebrow">Оперативный центр</p>
           <h2>Контроль мастер-данных и складских рисков</h2>
           <p>
             Сводка показывает критичные остатки, качество карточек деталей,
@@ -4255,9 +4250,9 @@ function DashboardPage({
             быстрого ежедневного контроля состояния MDM-контура.
           </p>
 
-          <div className="control-hero__actions">
+          <div className="control_hero__actions">
             <button
-              className="primary-button"
+              className="primary_button"
               type="button"
               onClick={() => onChangePage("warehouse")}
             >
@@ -4265,7 +4260,7 @@ function DashboardPage({
             </button>
             {hasAdminAccess(role) && (
               <button
-                className="secondary-button"
+                className="secondary_button"
                 type="button"
                 onClick={() => onChangePage("journal")}
               >
@@ -4274,7 +4269,7 @@ function DashboardPage({
             )}
             {hasAdminAccess(role) && (
               <button
-                className="secondary-button"
+                className="secondary_button"
                 type="button"
                 onClick={() => onChangePage("admin")}
               >
@@ -4284,7 +4279,7 @@ function DashboardPage({
           </div>
         </div>
 
-        <div className="control-health-card">
+        <div className="control_health_card">
           <span>Качество карточек</span>
           <strong>{qualityScore}%</strong>
           <p>
@@ -4295,7 +4290,7 @@ function DashboardPage({
         </div>
       </section>
 
-      <div className="metrics-grid metrics-grid--control">
+      <div className="metrics_grid _control">
         <MetricCard
           title="Карточек деталей"
           value={partsCount.toLocaleString("ru-RU")}
@@ -4320,15 +4315,15 @@ function DashboardPage({
         />
       </div>
 
-      <div className="control-grid">
-        <section className="content-card content-card--primary">
-          <div className="content-card__header">
+      <div className="control_grid">
+        <section className="content_card _primary">
+          <div className="content_card__header">
             <div>
               <p>Складской контроль</p>
               <h2>Позиции, требующие реакции</h2>
             </div>
             <button
-              className="secondary-button"
+              className="secondary_button"
               type="button"
               onClick={() => onChangePage("warehouse")}
             >
@@ -4336,8 +4331,8 @@ function DashboardPage({
             </button>
           </div>
 
-          <div className="data-table data-table--dense">
-            <div className="data-table__row data-table__row--head">
+          <div className="data_table _dense">
+            <div className="data_table__row _head">
               <span>Деталь</span>
               <span>Поставщик</span>
               <span>Остаток</span>
@@ -4347,7 +4342,7 @@ function DashboardPage({
             {criticalParts.length > 0 ? (
               criticalParts.map((part) => (
                 <button
-                  className="data-table__row data-table__row--button"
+                  className="data_table__row _button"
                   key={part.id}
                   type="button"
                   onClick={() => onOpenPart(part)}
@@ -4366,7 +4361,7 @@ function DashboardPage({
                 </button>
               ))
             ) : (
-              <div className="empty-state">
+              <div className="empty_state">
                 <b>Критичных складских предупреждений нет</b>
                 <span>Остатки находятся в пределах заданных минимумов.</span>
               </div>
@@ -4374,18 +4369,18 @@ function DashboardPage({
           </div>
         </section>
 
-        <section className="content-card">
-          <div className="content-card__header">
+        <section className="content_card">
+          <div className="content_card__header">
             <div>
               <p>Качество мастер-данных</p>
               <h2>Контроль заполненности</h2>
             </div>
           </div>
 
-          <div className="quality-list">
+          <div className="quality_list">
             {dataQualityWarnings.map((item) => (
               <button
-                className="quality-list__item"
+                className="quality_list__item"
                 key={item.title}
                 type="button"
                 onClick={() => onChangePage(item.page)}
@@ -4401,22 +4396,22 @@ function DashboardPage({
         </section>
       </div>
 
-      <div className="control-grid control-grid--secondary">
-        <section className="content-card">
-          <div className="content-card__header">
+      <div className="control_grid _secondary">
+        <section className="content_card">
+          <div className="content_card__header">
             <div>
               <p>Закупки</p>
               <h2>Последние операции</h2>
             </div>
 
-            <div className="status-badge status-badge--success">
+            <div className="status_badge _success">
               <i />
               {formatMoney(purchasesTotal)}
             </div>
           </div>
 
-          <div className="data-table data-table--dense">
-            <div className="data-table__row data-table__row--head">
+          <div className="data_table _dense">
+            <div className="data_table__row _head">
               <span>Дата</span>
               <span>Деталь</span>
               <span>Кол-во</span>
@@ -4429,7 +4424,7 @@ function DashboardPage({
 
                 return (
                   <button
-                    className="data-table__row data-table__row--button"
+                    className="data_table__row _button"
                     key={purchase.id}
                     type="button"
                     onClick={() => onOpenPurchase(purchase)}
@@ -4442,7 +4437,7 @@ function DashboardPage({
                 );
               })
             ) : (
-              <div className="empty-state">
+              <div className="empty_state">
                 <b>Закупок пока нет</b>
                 <span>Журнал закупок будет заполняться после проведения операций.</span>
               </div>
@@ -4450,14 +4445,14 @@ function DashboardPage({
           </div>
         </section>
 
-        <section className="content-card">
-          <div className="content-card__header">
+        <section className="content_card">
+          <div className="content_card__header">
             <div>
               <p>Аудит</p>
               <h2>Последние действия</h2>
             </div>
             <button
-              className="secondary-button"
+              className="secondary_button"
               type="button"
               onClick={() => onChangePage("journal")}
             >
@@ -4465,17 +4460,17 @@ function DashboardPage({
             </button>
           </div>
 
-          <div className="audit-feed">
+          <div className="audit_feed">
             {latestOperations.length > 0 ? (
               latestOperations.map((entry) => (
-                <article className="audit-feed__item" key={entry.id}>
+                <article className="audit_feed__item" key={entry.id}>
                   <span>{formatDateTime(entry.createdAt)}</span>
                   <b>{entry.action}</b>
                   <p>{entry.description}</p>
                 </article>
               ))
             ) : (
-              <div className="empty-state">
+              <div className="empty_state">
                 <b>Журнал пока пуст</b>
                 <span>После операций пользователей здесь появится аудит.</span>
               </div>
@@ -4620,20 +4615,20 @@ function PartsPage({
   } {
     if (part.stock === 0) {
       return {
-        className: "warehouse-status warehouse-status--danger",
+        className: "warehouse_status _danger",
         title: "Дефицит"
       };
     }
 
     if (part.stock < part.minStock) {
       return {
-        className: "warehouse-status warehouse-status--warning",
+        className: "warehouse_status _warning",
         title: "Низкий остаток"
       };
     }
 
     return {
-      className: "warehouse-status warehouse-status--success",
+      className: "warehouse_status _success",
       title: "Норма"
     };
   }
@@ -4680,19 +4675,19 @@ function PartsPage({
   }
 
   return (
-    <section className="parts-production-page">
-      <section className="content-card parts-summary-card">
-        <div className="content-card__header warehouse-summary-card__header">
+    <section className="parts_production_page">
+      <section className="content_card parts_summary_card">
+        <div className="content_card__header warehouse_summary_card__header">
           <div>
             <p>Детали</p>
             <h2>Реестр карточек деталей</h2>
           </div>
 
-          <div className="content-card__actions">
+          <div className="content_card__actions">
             {hasAdminAccess(role) && (
               <>
                 <button
-                  className="secondary-button"
+                  className="secondary_button"
                   disabled={!canExport}
                   type="button"
                   onClick={exportFilteredPartsCsv}
@@ -4701,7 +4696,7 @@ function PartsPage({
                 </button>
 
                 <button
-                  className="primary-button"
+                  className="primary_button"
                   type="button"
                   onClick={onOpenCreatePart}
                 >
@@ -4712,7 +4707,7 @@ function PartsPage({
           </div>
         </div>
 
-        <div className="warehouse-kpi-grid parts-kpi-grid">
+        <div className="warehouse_kpi_grid parts_kpi_grid">
           <MetricCard
             title="Деталей"
             value={parts.length.toLocaleString("ru-RU")}
@@ -4739,8 +4734,8 @@ function PartsPage({
         </div>
       </section>
 
-      <section className="content-card parts-control-card">
-        <div className="content-card__header">
+      <section className="content_card parts_control_card">
+        <div className="content_card__header">
           <div>
             <p>Контроль</p>
             <h2>Позиции без запаса</h2>
@@ -4748,15 +4743,15 @@ function PartsPage({
         </div>
 
         {criticalParts.length === 0 && lowStockParts.length === 0 ? (
-          <div className="warehouse-empty-state">Критичных позиций нет.</div>
+          <div className="warehouse_empty_state">Критичных позиций нет.</div>
         ) : (
-          <div className="warehouse-shortage-list">
+          <div className="warehouse_shortage_list">
             {[...criticalParts, ...lowStockParts].slice(0, 8).map((part) => {
               const status = getPartStatus(part);
 
               return (
                 <button
-                  className="warehouse-shortage-item"
+                  className="warehouse_shortage_item"
                   key={part.id}
                   type="button"
                   onClick={() => onOpenPart(part)}
@@ -4776,24 +4771,24 @@ function PartsPage({
         )}
       </section>
 
-      <section className="content-card parts-table-card">
-        <div className="content-card__header warehouse-table-card__header">
+      <section className="content_card parts_table_card">
+        <div className="content_card__header warehouse_table_card__header">
           <div>
             <p>Реестр</p>
             <h2>Карточки деталей</h2>
           </div>
         </div>
 
-        <div className="warehouse-filters parts-filters">
+        <div className="warehouse_filters parts_filters">
           <input
-            className="search-field warehouse-filters__search"
+            className="search_field warehouse_filters__search"
             value={partSearch}
             onChange={(event) => setPartSearch(event.target.value)}
             placeholder="Поиск по коду, названию, материалу, поставщику или чертежу"
           />
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partStockStatus}
             onChange={(event) => setPartStockStatus(event.target.value)}
           >
@@ -4804,7 +4799,7 @@ function PartsPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partCategory}
             onChange={(event) => setPartCategory(event.target.value)}
           >
@@ -4817,7 +4812,7 @@ function PartsPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partMaterial}
             onChange={(event) => setPartMaterial(event.target.value)}
           >
@@ -4830,7 +4825,7 @@ function PartsPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partSupplier}
             onChange={(event) => setPartSupplier(event.target.value)}
           >
@@ -4843,7 +4838,7 @@ function PartsPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partDrawingStatus}
             onChange={(event) => setPartDrawingStatus(event.target.value)}
           >
@@ -4853,7 +4848,7 @@ function PartsPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={partSort}
             onChange={(event) => setPartSort(event.target.value)}
           >
@@ -4865,17 +4860,17 @@ function PartsPage({
           </select>
         </div>
 
-        <div className="parts-table-meta">
+        <div className="parts_table_meta">
           <span>Показано: {filteredParts.length.toLocaleString("ru-RU")}</span>
           <span>Остаток: {totalStock.toLocaleString("ru-RU")}</span>
           <span>Норма: {totalMinStock.toLocaleString("ru-RU")}</span>
         </div>
 
         {filteredParts.length === 0 ? (
-          <div className="warehouse-empty-state">По текущим фильтрам деталей нет.</div>
+          <div className="warehouse_empty_state">По текущим фильтрам деталей нет.</div>
         ) : (
-          <div className="warehouse-table-wrap parts-table-wrap">
-            <table className="warehouse-table parts-table">
+          <div className="warehouse_table_wrap parts_table_wrap">
+            <table className="warehouse_table parts_table">
               <thead>
                 <tr>
                   <th>Код</th>
@@ -4912,12 +4907,12 @@ function PartsPage({
                       <td>{part.supplier}</td>
                       <td>
                         <b>{part.stock} / {part.minStock} {part.unit}</b>
-                        <div className="progress warehouse-table__progress">
+                        <div className="progress warehouse_table__progress">
                           <div
                             className={
                               status.title === "Норма"
                                 ? "progress__bar"
-                                : "progress__bar progress__bar--danger"
+                                : "progress__bar _danger"
                             }
                             style={{ width: `${percent}%` }}
                           />
@@ -4930,7 +4925,7 @@ function PartsPage({
                       </td>
                       <td>
                         <button
-                          className="secondary-button"
+                          className="secondary_button"
                           type="button"
                           onClick={() => onOpenPart(part)}
                         >
@@ -5141,9 +5136,9 @@ function PurchasesPage({
   }
 
   return (
-    <section className="purchases-page">
-      <section className="content-card purchases-summary-card">
-        <div className="content-card__header purchases-summary-card__header">
+    <section className="purchases_page">
+      <section className="content_card purchases_summary_card">
+        <div className="content_card__header purchases_summary_card__header">
           <div>
             <p>Закупочные операции</p>
             <h2>Журнал снабжения</h2>
@@ -5151,7 +5146,7 @@ function PurchasesPage({
 
           {hasAdminAccess(role) && (
             <button
-              className="secondary-button"
+              className="secondary_button"
               type="button"
               onClick={exportPurchasesCsv}
               disabled={filteredPurchases.length === 0}
@@ -5161,7 +5156,7 @@ function PurchasesPage({
           )}
         </div>
 
-        <div className="warehouse-kpi-grid purchases-kpi-grid">
+        <div className="warehouse_kpi_grid purchases_kpi_grid">
           <MetricCard
             title="Операций"
             value={String(filteredPurchases.length)}
@@ -5186,20 +5181,20 @@ function PurchasesPage({
       </section>
 
       {hasAdminAccess(role) && (
-        <section className="content-card purchases-create-card">
-          <div className="content-card__header">
+        <section className="content_card purchases_create_card">
+          <div className="content_card__header">
             <div>
               <p>Новая операция</p>
               <h2>Провести закупку</h2>
             </div>
           </div>
 
-          <form className="entity-form purchases-form" onSubmit={onSubmit}>
-            <label className="entity-form__field purchases-form__part">
+          <form className="entity_form purchases_form" onSubmit={onSubmit}>
+            <label className="entity_form__field purchases_form__part">
               <span>Деталь из утвержденного справочника</span>
               <select
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 disabled={isDisabled}
                 value={form.partId}
                 onChange={(event) => onChangeForm("partId", event.target.value)}
@@ -5212,11 +5207,11 @@ function PurchasesPage({
               </select>
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Количество</span>
               <input
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 disabled={isDisabled}
                 inputMode="numeric"
                 type="text"
@@ -5228,11 +5223,11 @@ function PurchasesPage({
               />
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Цена</span>
               <input
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 disabled={isDisabled}
                 inputMode="decimal"
                 type="text"
@@ -5247,7 +5242,7 @@ function PurchasesPage({
 
 
             {selectedPart && (
-              <div className="form-hint purchases-form__hint">
+              <div className="form_hint purchases_form__hint">
                 <span>
                   Остаток: {selectedPart.stock} {selectedPart.unit}
                 </span>
@@ -5258,7 +5253,7 @@ function PurchasesPage({
             )}
 
             <button
-              className="primary-button purchases-form__submit"
+              className="primary_button purchases_form__submit"
               type="submit"
               disabled={isDisabled}
             >
@@ -5268,24 +5263,24 @@ function PurchasesPage({
         </section>
       )}
 
-      <section className="content-card purchases-table-card">
-        <div className="content-card__header purchases-table-card__header">
+      <section className="content_card purchases_table_card">
+        <div className="content_card__header purchases_table_card__header">
           <div>
             <p>Реестр</p>
             <h2>История закупок</h2>
           </div>
         </div>
 
-        <div className="warehouse-filters purchases-filters">
+        <div className="warehouse_filters purchases_filters">
           <input
-            className="search-field warehouse-filters__search"
+            className="search_field warehouse_filters__search"
             value={purchaseSearch}
             onChange={(event) => setPurchaseSearch(event.target.value)}
             placeholder="Поиск по коду, детали, поставщику, сотруднику"
           />
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={purchaseSupplier}
             onChange={(event) => setPurchaseSupplier(event.target.value)}
           >
@@ -5298,7 +5293,7 @@ function PurchasesPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={purchasePeriod}
             onChange={(event) => setPurchasePeriod(event.target.value)}
           >
@@ -5309,7 +5304,7 @@ function PurchasesPage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={purchaseSort}
             onChange={(event) => setPurchaseSort(event.target.value)}
           >
@@ -5323,12 +5318,12 @@ function PurchasesPage({
         </div>
 
         {filteredPurchases.length === 0 ? (
-          <div className="warehouse-empty-state">
+          <div className="warehouse_empty_state">
             Записи не найдены.
           </div>
         ) : (
-          <div className="purchases-table-wrap">
-            <table className="purchases-table">
+          <div className="purchases_table_wrap">
+            <table className="purchases_table">
               <thead>
                 <tr>
                   <th>Дата</th>
@@ -5369,7 +5364,7 @@ function PurchasesPage({
                       </td>
                       <td>
                         <button
-                          className="table-action-button"
+                          className="table_action_button"
                           type="button"
                           onClick={() => onOpenPurchase(purchase)}
                         >
@@ -5438,8 +5433,8 @@ function StockMovementsPage({
   const inventoryCount = movements.filter((movement) => movement.type === "inventory").length;
 
   return (
-    <section className="content-card">
-      <div className="content-card__header">
+    <section className="content_card">
+      <div className="content_card__header">
         <div>
           <p>Складские операции</p>
           <h2>Журнал движений склада</h2>
@@ -5450,7 +5445,7 @@ function StockMovementsPage({
         </div>
       </div>
 
-      <div className="metrics-grid">
+      <div className="metrics_grid">
         <MetricCard
           title="Операций"
           value={movements.length.toLocaleString("ru-RU")}
@@ -5475,10 +5470,10 @@ function StockMovementsPage({
       </div>
 
       {(
-        <form className="entity-form" style={{ marginTop: "24px" }} onSubmit={onSubmit}>
-          <label className="entity-form__field">
+        <form className="entity_form" style={{ marginTop: "24px" }} onSubmit={onSubmit}>
+          <label className="entity_form__field">
             <span>Деталь</span>
-            <select required className="entity-form__control" disabled={isDisabled} value={form.partId} onChange={(event) => onChangeForm("partId", event.target.value)}>
+            <select required className="entity_form__control" disabled={isDisabled} value={form.partId} onChange={(event) => onChangeForm("partId", event.target.value)}>
               {parts.map((part) => (
                 <option key={part.id} value={part.id}>
                   {part.code} — {part.name}
@@ -5487,9 +5482,9 @@ function StockMovementsPage({
             </select>
           </label>
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>Тип операции</span>
-            <select required className="entity-form__control" disabled={isDisabled} value={form.type} onChange={(event) => onChangeForm("type", event.target.value as StockMovementType)}>
+            <select required className="entity_form__control" disabled={isDisabled} value={form.type} onChange={(event) => onChangeForm("type", event.target.value as StockMovementType)}>
               {Object.entries(stockMovementTypeLabels).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -5498,14 +5493,14 @@ function StockMovementsPage({
             </select>
           </label>
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>{form.type === "inventory" ? "Фактический остаток" : "Количество"}</span>
-            <input required className="entity-form__control" disabled={isDisabled} inputMode="numeric" type="text" value={form.quantity} onChange={(event) => onChangeForm("quantity", onlyDigits(event.target.value))} placeholder="10" />
+            <input required className="entity_form__control" disabled={isDisabled} inputMode="numeric" type="text" value={form.quantity} onChange={(event) => onChangeForm("quantity", onlyDigits(event.target.value))} placeholder="10" />
           </label>
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>Склад-источник</span>
-            <select className="entity-form__control" disabled={isDisabled} value={form.fromLocation} onChange={(event) => onChangeForm("fromLocation", event.target.value)}>
+            <select className="entity_form__control" disabled={isDisabled} value={form.fromLocation} onChange={(event) => onChangeForm("fromLocation", event.target.value)}>
               <option value="">Не используется</option>
               {references.warehouses.map((item) => (
                 <option key={item.id} value={item.name}>
@@ -5515,9 +5510,9 @@ function StockMovementsPage({
             </select>
           </label>
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>Склад-получатель</span>
-            <select className="entity-form__control" disabled={isDisabled} value={form.toLocation} onChange={(event) => onChangeForm("toLocation", event.target.value)}>
+            <select className="entity_form__control" disabled={isDisabled} value={form.toLocation} onChange={(event) => onChangeForm("toLocation", event.target.value)}>
               <option value="">Не используется</option>
               {references.warehouses.map((item) => (
                 <option key={item.id} value={item.name}>
@@ -5527,9 +5522,9 @@ function StockMovementsPage({
             </select>
           </label>
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>Основание</span>
-            <select required className="entity-form__control" disabled={isDisabled} value={form.reason} onChange={(event) => onChangeForm("reason", event.target.value)}>
+            <select required className="entity_form__control" disabled={isDisabled} value={form.reason} onChange={(event) => onChangeForm("reason", event.target.value)}>
               {references["stock-movement-reasons"].map((item) => (
                 <option key={item.id} value={item.name}>
                   {item.name}
@@ -5539,22 +5534,22 @@ function StockMovementsPage({
           </label>
 
           {selectedPart && (
-            <div className="form-hint" style={{ gridColumn: "1 / -1" }}>
+            <div className="form_hint" style={{ gridColumn: "1 / -1" }}>
               <span>Текущий остаток: {selectedPart.stock} {selectedPart.unit}</span>
               <span>Норма: {selectedPart.minStock}</span>
               <span>Поставщик: {selectedPart.supplier}</span>
             </div>
           )}
 
-          <button className="primary-button" disabled={isDisabled} style={{ alignSelf: "end" }} type="submit">
+          <button className="primary_button" disabled={isDisabled} style={{ alignSelf: "end" }} type="submit">
             Провести операцию
           </button>
         </form>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 1fr) 220px", gap: "12px", margin: "24px 0" }}>
-        <input className="search-field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск по детали, складу, основанию или сотруднику" style={{ margin: 0 }} />
-        <select className="entity-form__control" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+        <input className="search_field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Поиск по детали, складу, основанию или сотруднику" style={{ margin: 0 }} />
+        <select className="entity_form__control" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
           <option value="all">Все операции</option>
           {Object.entries(stockMovementTypeLabels).map(([value, label]) => (
             <option key={value} value={value}>
@@ -5565,7 +5560,7 @@ function StockMovementsPage({
       </div>
 
       {filteredMovements.length === 0 ? (
-        <div className="system-message">Записи не найдены.</div>
+        <div className="system_message">Записи не найдены.</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px", minWidth: "1120px" }}>
@@ -5590,7 +5585,7 @@ function StockMovementsPage({
                   <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.reason}</td>
                   <td style={{ background: "var(--surface-soft)", padding: "14px" }}>{movement.employee}</td>
                   <td style={{ background: "var(--surface-soft)", borderBottomRightRadius: "18px", borderTopRightRadius: "18px", padding: "14px" }}>
-                    <button className="secondary-button" type="button" onClick={() => onOpenPart(movement.partId)}>Карточка</button>
+                    <button className="secondary_button" type="button" onClick={() => onOpenPart(movement.partId)}>Карточка</button>
                   </td>
                 </tr>
               ))}
@@ -5654,8 +5649,8 @@ function ReportsPage({
   const totalDeviationInReport = totalStockInReport - totalMinStockInReport;
 
   return (
-    <section className="content-card">
-      <div className="content-card__header">
+    <section className="content_card">
+      <div className="content_card__header">
         <div>
           <p>Аналитика мастер-данных</p>
           <h2>Отчет по складу и закупкам</h2>
@@ -5664,9 +5659,9 @@ function ReportsPage({
           </span>
         </div>
 
-        <div className="reference-actions">
+        <div className="reference_actions">
           <button
-            className="secondary-button secondary-button--large"
+            className="secondary_button _large"
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
@@ -5676,7 +5671,7 @@ function ReportsPage({
 
           {hasAdminAccess(role) && (
             <button
-              className="primary-button"
+              className="primary_button"
               type="button"
               onClick={onExport}
               disabled={items.length === 0}
@@ -5687,7 +5682,7 @@ function ReportsPage({
         </div>
       </div>
 
-      <div className="metrics-grid">
+      <div className="metrics_grid">
         <MetricCard
           title="Строк в отчете"
           value={items.length.toLocaleString("ru-RU")}
@@ -5726,7 +5721,7 @@ function ReportsPage({
         }}
       >
         <input
-          className="search-field"
+          className="search_field"
           value={search}
           onChange={(event) => onChangeSearch(event.target.value)}
           placeholder="Поиск по коду, названию, материалу, поставщику или чертежу"
@@ -5734,7 +5729,7 @@ function ReportsPage({
         />
 
         <select
-          className="entity-form__control"
+          className="entity_form__control"
           value={category}
           onChange={(event) => onChangeCategory(event.target.value)}
         >
@@ -5747,7 +5742,7 @@ function ReportsPage({
         </select>
 
         <select
-          className="entity-form__control"
+          className="entity_form__control"
           value={status}
           onChange={(event) => onChangeStatus(event.target.value)}
         >
@@ -5759,7 +5754,7 @@ function ReportsPage({
       </div>
 
       {items.length === 0 ? (
-        <div className="system-message">
+        <div className="system_message">
           Данные не найдены.
         </div>
       ) : (
@@ -5842,7 +5837,7 @@ function ReportsPage({
                       <b>{item.minStock} {item.unit}</b>
                     </td>
                     <td style={{ background: "var(--surface-soft)", padding: "14px" }}>
-                      <b className={deficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                      <b className={deficit > 0 ? "warehouse_deficit_value" : "warehouse_neutral_value"}>
                         {deficit} {item.unit}
                       </b>
                     </td>
@@ -5850,8 +5845,8 @@ function ReportsPage({
                       <b
                         className={
                           deviation < 0
-                            ? "warehouse-deviation-value warehouse-deviation-value--negative"
-                            : "warehouse-deviation-value warehouse-deviation-value--positive"
+                            ? "warehouse_deviation_value _negative"
+                            : "warehouse_deviation_value _positive"
                         }
                       >
                         {deviation > 0 ? "+" : ""}{deviation} {item.unit}
@@ -5899,7 +5894,7 @@ function ReportsPage({
                       }}
                     >
                       <button
-                        className="secondary-button"
+                        className="secondary_button"
                         type="button"
                         onClick={() => onOpenPart(item)}
                       >
@@ -6047,9 +6042,9 @@ function WarehousePage({
   }
 
   return (
-    <section className="warehouse-page">
-      <section className="content-card warehouse-summary-card">
-        <div className="content-card__header warehouse-summary-card__header">
+    <section className="warehouse_page">
+      <section className="content_card warehouse_summary_card">
+        <div className="content_card__header warehouse_summary_card__header">
           <div>
             <p>Склад</p>
             <h2>Контроль остатков</h2>
@@ -6057,7 +6052,7 @@ function WarehousePage({
 
           {hasAdminAccess(role) && (
             <button
-              className="primary-button"
+              className="primary_button"
               disabled={!canExport}
               type="button"
               onClick={exportWarehouseCsv}
@@ -6067,7 +6062,7 @@ function WarehousePage({
           )}
         </div>
 
-        <div className="warehouse-kpi-grid">
+        <div className="warehouse_kpi_grid">
           <MetricCard
             title="Позиций"
             value={items.length.toLocaleString("ru-RU")}
@@ -6093,8 +6088,8 @@ function WarehousePage({
         </div>
       </section>
 
-      <section className="content-card warehouse-deficit-card">
-        <div className="content-card__header">
+      <section className="content_card warehouse_deficit_card">
+        <div className="content_card__header">
           <div>
             <p>Приоритет</p>
             <h2>Позиции для пополнения</h2>
@@ -6102,12 +6097,12 @@ function WarehousePage({
         </div>
 
         {deficitItems.length === 0 && lowStockItems.length === 0 ? (
-          <div className="warehouse-empty-state">Критичных остатков нет.</div>
+          <div className="warehouse_empty_state">Критичных остатков нет.</div>
         ) : (
-          <div className="warehouse-shortage-list">
+          <div className="warehouse_shortage_list">
             {[...deficitItems, ...lowStockItems].slice(0, 6).map((item) => (
               <button
-                className="warehouse-shortage-item"
+                className="warehouse_shortage_item"
                 key={`${item.stockStatus}-${item.partId}`}
                 type="button"
                 onClick={() => onOpenPart(item)}
@@ -6119,13 +6114,13 @@ function WarehousePage({
                 <strong
                   className={
                     item.stockStatus === "Дефицит"
-                      ? "warehouse-status warehouse-status--danger"
-                      : "warehouse-status warehouse-status--warning"
+                      ? "warehouse_status _danger"
+                      : "warehouse_status _warning"
                   }
                 >
                   {item.stockStatus}
                 </strong>
-                  <div className="warehouse-shortage-metrics">
+                  <div className="warehouse_shortage_metrics">
                     <span><b>Факт</b><strong>{item.stock.toLocaleString("ru-RU")} {item.unit}</strong></span>
                     <span><b>Норма</b><strong>{item.minStock.toLocaleString("ru-RU")} {item.unit}</strong></span>
                     <span><b>Дефицит</b><strong>{Math.max(item.minStock - item.stock, 0).toLocaleString("ru-RU")} {item.unit}</strong></span>
@@ -6136,24 +6131,24 @@ function WarehousePage({
         )}
       </section>
 
-      <section className="content-card warehouse-table-card">
-        <div className="content-card__header warehouse-table-card__header">
+      <section className="content_card warehouse_table_card">
+        <div className="content_card__header warehouse_table_card__header">
           <div>
             <p>Реестр</p>
             <h2>Складские позиции</h2>
           </div>
         </div>
 
-        <div className="warehouse-filters">
+        <div className="warehouse_filters">
           <input
-            className="search-field warehouse-filters__search"
+            className="search_field warehouse_filters__search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Поиск по коду, названию, материалу, поставщику или чертежу"
           />
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
           >
@@ -6164,7 +6159,7 @@ function WarehousePage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
           >
@@ -6177,7 +6172,7 @@ function WarehousePage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={supplier}
             onChange={(event) => setSupplier(event.target.value)}
           >
@@ -6190,7 +6185,7 @@ function WarehousePage({
           </select>
 
           <select
-            className="entity-form__control"
+            className="entity_form__control"
             value={sort}
             onChange={(event) => setSort(event.target.value)}
           >
@@ -6203,10 +6198,10 @@ function WarehousePage({
         </div>
 
         {filteredItems.length === 0 ? (
-          <div className="warehouse-empty-state">Позиции не найдены.</div>
+          <div className="warehouse_empty_state">Позиции не найдены.</div>
         ) : (
-          <div className="warehouse-table-wrap">
-            <table className="warehouse-table">
+          <div className="warehouse_table_wrap">
+            <table className="warehouse_table">
               <thead>
                 <tr>
                   <th>Код</th>
@@ -6250,12 +6245,12 @@ function WarehousePage({
                       <td>{item.supplier}</td>
                       <td>
                         <b>{item.stock} {item.unit}</b>
-                        <div className="progress warehouse-table__progress">
+                        <div className="progress warehouse_table__progress">
                           <div
                             className={
                               item.stockStatus === "Норма"
                                 ? "progress__bar"
-                                : "progress__bar progress__bar--danger"
+                                : "progress__bar _danger"
                             }
                             style={{ width: `${percent}%` }}
                           />
@@ -6265,7 +6260,7 @@ function WarehousePage({
                         <b>{item.minStock} {item.unit}</b>
                       </td>
                       <td>
-                        <b className={deficit > 0 ? "warehouse-deficit-value" : "warehouse-neutral-value"}>
+                        <b className={deficit > 0 ? "warehouse_deficit_value" : "warehouse_neutral_value"}>
                           {deficit} {item.unit}
                         </b>
                       </td>
@@ -6273,8 +6268,8 @@ function WarehousePage({
                         <b
                           className={
                             deviation < 0
-                              ? "warehouse-deviation-value warehouse-deviation-value--negative"
-                              : "warehouse-deviation-value warehouse-deviation-value--positive"
+                              ? "warehouse_deviation_value _negative"
+                              : "warehouse_deviation_value _positive"
                           }
                         >
                           {deviation > 0 ? "+" : ""}{deviation} {item.unit}
@@ -6285,7 +6280,7 @@ function WarehousePage({
                       </td>
                       <td>
                         <button
-                          className="secondary-button"
+                          className="secondary_button"
                           type="button"
                           onClick={() => onOpenPart(item)}
                         >
@@ -6373,9 +6368,9 @@ function EmployeesPage({
   }
 
   return (
-    <section className="employee-layout employee-layout--system-users">
-      <section className="content-card">
-        <div className="content-card__header">
+    <section className="employee_layout _system_users">
+      <section className="content_card">
+        <div className="content_card__header">
           <div>
             <p>Справочник</p>
             <h2>Подразделения MDM</h2>
@@ -6385,14 +6380,14 @@ function EmployeesPage({
           </div>
         </div>
 
-        <div className="simple-list">
+        <div className="simple_list">
           {departments.map((department) => {
             const usersInDepartment = usersByDepartment.get(department.id) || [];
 
             return (
               <button
                 key={department.id}
-                className="simple-list__item simple-list__item--button"
+                className="simple_list__item _button"
                 type="button"
                 onClick={() =>
                   onOpenDepartment({
@@ -6413,8 +6408,8 @@ function EmployeesPage({
         </div>
       </section>
 
-      <section className="content-card">
-        <div className="content-card__header">
+      <section className="content_card">
+        <div className="content_card__header">
           <div>
             <p>Доступ</p>
             <h2>Сотрудники системы</h2>
@@ -6425,7 +6420,7 @@ function EmployeesPage({
           </div>
 
           <button
-            className="secondary-button secondary-button--large"
+            className="secondary_button _large"
             disabled={isLoadingUsers}
             type="button"
             onClick={() => void loadUsers()}
@@ -6435,14 +6430,14 @@ function EmployeesPage({
         </div>
 
         {loadError && (
-          <div className="system-message system-message--error">{loadError}</div>
+          <div className="system_message _error">{loadError}</div>
         )}
 
         {isLoadingUsers ? (
-          <div className="system-message">Загрузка сотрудников системы...</div>
+          <div className="system_message">Загрузка сотрудников системы...</div>
         ) : (
-          <div className="data-table data-table--employees">
-            <div className="data-table__row data-table__row--head">
+          <div className="data_table _employees">
+            <div className="data_table__row _head">
               <span>ФИО</span>
               <span>Подразделение</span>
               <span>Роль</span>
@@ -6451,7 +6446,7 @@ function EmployeesPage({
 
             {departmentUsers.map((user) => (
               <button
-                className="data-table__row data-table__row--button"
+                className="data_table__row _button"
                 key={user.id}
                 type="button"
                 onClick={() => openUserInfo(user)}
@@ -6467,14 +6462,14 @@ function EmployeesPage({
             ))}
 
             {usersWithoutDepartment.length > 0 && (
-              <div className="system-message system-message--warning">
+              <div className="system_message _warning">
                 Есть пользователи без подразделения: {usersWithoutDepartment.length}.
                 Назначьте подразделение в разделе учетных записей.
               </div>
             )}
 
             {departmentUsers.length === 0 && (
-              <div className="system-message">Пользователи системы не найдены</div>
+              <div className="system_message">Пользователи системы не найдены</div>
             )}
           </div>
         )}
@@ -6512,8 +6507,8 @@ function DrawingsPage({
   }, [parts]);
 
   return (
-    <section className="content-card">
-      <div className="content-card__header">
+    <section className="content_card">
+      <div className="content_card__header">
         <div>
           <p>Техническая документация</p>
           <h2>Чертежи и спецификации</h2>
@@ -6525,7 +6520,7 @@ function DrawingsPage({
 
         {canManageDrawings && (
           <button
-            className="secondary-button"
+            className="secondary_button"
             disabled={isCheckingStorage}
             type="button"
             onClick={onCheckStorage}
@@ -6558,7 +6553,7 @@ function DrawingsPage({
                   </div>
 
                   <button
-                    className="danger-button"
+                    className="danger_button"
                     type="button"
                     onClick={() => onClearMissingDrawingRecord(issue.partId)}
                   >
@@ -6577,7 +6572,7 @@ function DrawingsPage({
         </div>
       )}
 
-      <div className="drawings-grid" style={{ alignItems: "stretch" }}>
+      <div className="drawings_grid" style={{ alignItems: "stretch" }}>
         {parts.map((part) => {
           const drawingImage = drawingImages[String(part.id)];
           const actionColumns = canManageDrawings
@@ -6588,7 +6583,7 @@ function DrawingsPage({
 
           return (
             <article
-              className="drawing-card"
+              className="drawing_card"
               key={part.id}
               style={{
                 display: "grid",
@@ -6649,7 +6644,7 @@ function DrawingsPage({
               </button>
 
               <div
-                className="drawing-card__content"
+                className="drawing_card__content"
                 style={{
                   display: "grid",
                   gap: "14px",
@@ -6710,7 +6705,7 @@ function DrawingsPage({
                 </div>
 
                 <div
-                  className="reference-actions"
+                  className="reference_actions"
                   style={{
                     display: "grid",
                     gridTemplateColumns: actionColumns,
@@ -6719,7 +6714,7 @@ function DrawingsPage({
                   }}
                 >
                   <button
-                    className="secondary-button"
+                    className="secondary_button"
                     type="button"
                     onClick={() => onOpenPart(part)}
                     style={{ width: "100%", justifyContent: "center" }}
@@ -6729,7 +6724,7 @@ function DrawingsPage({
 
                   {canManageDrawings && (
                     <label
-                      className="secondary-button"
+                      className="secondary_button"
                       style={{
                         width: "100%",
                         justifyContent: "center",
@@ -6755,7 +6750,7 @@ function DrawingsPage({
 
                   {canManageDrawings && drawingImage && (
                     <button
-                      className="danger-button"
+                      className="danger_button"
                       type="button"
                       onClick={() => onRemoveDrawingImage(part)}
                       style={{ width: "100%", justifyContent: "center" }}
@@ -6785,8 +6780,8 @@ function OperationLogPage({
   onExport: () => void;
 }) {
   return (
-    <section className="content-card">
-      <div className="content-card__header">
+    <section className="content_card">
+      <div className="content_card__header">
         <div>
           <p>Контроль действий</p>
           <h2>Журнал операций</h2>
@@ -6797,9 +6792,9 @@ function OperationLogPage({
         </div>
 
         {hasAdminAccess(role) ? (
-          <div className="reference-actions">
+          <div className="reference_actions">
             <button
-              className="secondary-button secondary-button--large"
+              className="secondary_button _large"
               type="button"
               onClick={onExport}
             >
@@ -6807,7 +6802,7 @@ function OperationLogPage({
             </button>
 
             <button
-              className="danger-button danger-button--large"
+              className="danger_button _large"
               type="button"
               onClick={onClear}
               disabled={entries.length === 0}
@@ -6816,18 +6811,18 @@ function OperationLogPage({
             </button>
           </div>
         ) : (
-          <div className="status-badge">Только просмотр</div>
+          <div className="status_badge">Только просмотр</div>
         )}
       </div>
 
       {entries.length === 0 ? (
-        <div className="system-message">
+        <div className="system_message">
           Журнал пока пуст. Новые операции появятся здесь автоматически.
         </div>
       ) : (
-        <div className="simple-list">
+        <div className="simple_list">
           {entries.map((entry) => (
-            <article className="simple-list__item" key={entry.id}>
+            <article className="simple_list__item" key={entry.id}>
               <b>{entry.action}</b>
               <span>{entry.description}</span>
               <small>
@@ -6867,9 +6862,9 @@ function AdminPage({
   onOpenEditReference: (kind: ReferenceKind, item: ReferenceItem) => void;
 }) {
   return (
-    <section className="admin-page">
-      <section className="content-card admin-hero-card">
-        <div className="content-card__header">
+    <section className="admin_page">
+      <section className="content_card admin_hero_card">
+        <div className="content_card__header">
           <div>
             <p>Администрирование</p>
             <h2>Управление мастер-данными</h2>
@@ -6880,7 +6875,7 @@ function AdminPage({
           </div>
         </div>
 
-        <div className="admin-actions">
+        <div className="admin_actions">
           <button type="button" onClick={onCreatePartClick}>
             Добавить деталь
           </button>
@@ -6896,8 +6891,8 @@ function AdminPage({
         </div>
       </section>
 
-      <section className="content-card">
-        <div className="content-card__header">
+      <section className="content_card">
+        <div className="content_card__header">
           <div>
             <p>Главный справочник</p>
             <h2>Номенклатура деталей</h2>
@@ -6908,7 +6903,7 @@ function AdminPage({
           </div>
 
           <button
-            className="primary-button"
+            className="primary_button"
             type="button"
             onClick={onOpenCreateNomenclature}
           >
@@ -6916,9 +6911,9 @@ function AdminPage({
           </button>
         </div>
 
-        <div className="nomenclature-list">
+        <div className="nomenclature_list">
           {partNomenclature.map((item) => (
-            <article className="nomenclature-item" key={item.id}>
+            <article className="nomenclature_item" key={item.id}>
               <div>
                 <b>{item.name}</b>
                 <span>{item.code}</span>
@@ -6930,9 +6925,9 @@ function AdminPage({
                 <small>{item.material}</small>
               </div>
 
-              <div className="reference-actions">
+              <div className="reference_actions">
                 <button
-                  className="secondary-button"
+                  className="secondary_button"
                   type="button"
                   onClick={() => onOpenEditNomenclature(item)}
                 >
@@ -6940,7 +6935,7 @@ function AdminPage({
                 </button>
 
                 <button
-                  className="danger-button"
+                  className="danger_button"
                   type="button"
                   onClick={() => onOpenDeleteNomenclature(item)}
                 >
@@ -6952,10 +6947,10 @@ function AdminPage({
         </div>
       </section>
 
-      <div className="reference-grid">
+      <div className="reference_grid">
         {referenceKinds.map((kind) => (
-          <section className="content-card reference-card" key={kind}>
-            <div className="content-card__header reference-card__header">
+          <section className="content_card reference_card" key={kind}>
+            <div className="content_card__header reference_card__header">
               <div>
                 <p>Справочник</p>
                 <h2>{getReferenceTitle(kind)}</h2>
@@ -6963,7 +6958,7 @@ function AdminPage({
               </div>
 
               <button
-                className="primary-button"
+                className="primary_button"
                 type="button"
                 onClick={() => onOpenCreateReference(kind)}
               >
@@ -6971,18 +6966,18 @@ function AdminPage({
               </button>
             </div>
 
-            <div className="reference-list">
+            <div className="reference_list">
               {references[kind].map((item) => (
-                <article className="reference-item" key={item.id}>
+                <article className="reference_item" key={item.id}>
                   <div>
                     <b>{item.name}</b>
                     <span>{item.description || "Описание не указано"}</span>
                     <small>ID: {item.id}</small>
                   </div>
 
-                  <div className="reference-actions">
+                  <div className="reference_actions">
                     <button
-                      className="secondary-button"
+                      className="secondary_button"
                       type="button"
                       onClick={() => onOpenEditReference(kind, item)}
                     >
@@ -6990,7 +6985,7 @@ function AdminPage({
                     </button>
 
                     <button
-                      className="danger-button"
+                      className="danger_button"
                       type="button"
                       onClick={() => onOpenDeleteReference(kind, item)}
                     >
@@ -7035,8 +7030,8 @@ function PartModal({
 
   return (
     <ModalBackdrop onClose={onClose}>
-      <section className="reference-modal">
-        <div className="reference-modal__header">
+      <section className="reference_modal">
+        <div className="reference_modal__header">
           <div>
             <p>Карточка детали</p>
             <h2>{title}</h2>
@@ -7048,15 +7043,15 @@ function PartModal({
         </div>
 
         {error && (
-          <div className="system-message system-message--error">{error}</div>
+          <div className="system_message _error">{error}</div>
         )}
 
-        <form className="entity-form" onSubmit={onSubmit}>
-          <label className="entity-form__field">
+        <form className="entity_form" onSubmit={onSubmit}>
+          <label className="entity_form__field">
             <span>Номенклатура детали</span>
             <select
               required
-              className="entity-form__control"
+              className="entity_form__control"
               value={form.nomenclatureId}
               onChange={(event) =>
                 onChangeForm("nomenclatureId", event.target.value)
@@ -7072,7 +7067,7 @@ function PartModal({
           </label>
 
           {selectedNomenclature && (
-            <div className="nomenclature-preview">
+            <div className="nomenclature_preview">
               <div>
                 <span>Код</span>
                 <b>{selectedNomenclature.code}</b>
@@ -7096,11 +7091,11 @@ function PartModal({
             </div>
           )}
 
-          <label className="entity-form__field">
+          <label className="entity_form__field">
             <span>Поставщик</span>
             <select
               required
-              className="entity-form__control"
+              className="entity_form__control"
               value={form.supplier}
               onChange={(event) => onChangeForm("supplier", event.target.value)}
             >
@@ -7113,12 +7108,12 @@ function PartModal({
             </select>
           </label>
 
-          <div className="entity-form__row">
-            <label className="entity-form__field">
+          <div className="entity_form__row">
+            <label className="entity_form__field">
               <span>Единица измерения</span>
               <select
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 value={form.unit}
                 onChange={(event) => onChangeForm("unit", event.target.value)}
               >
@@ -7131,11 +7126,11 @@ function PartModal({
               </select>
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Вес, кг</span>
               <input
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 inputMode="decimal"
                 type="text"
                 value={form.weight}
@@ -7147,12 +7142,12 @@ function PartModal({
             </label>
           </div>
 
-          <div className="entity-form__row">
-            <label className="entity-form__field">
+          <div className="entity_form__row">
+            <label className="entity_form__field">
               <span>Остаток</span>
               <input
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 inputMode="numeric"
                 type="text"
                 value={form.stock}
@@ -7163,11 +7158,11 @@ function PartModal({
               />
             </label>
 
-            <label className="entity-form__field">
+            <label className="entity_form__field">
               <span>Норма остатка</span>
               <input
                 required
-                className="entity-form__control"
+                className="entity_form__control"
                 inputMode="numeric"
                 type="text"
                 value={form.minStock}
@@ -7179,13 +7174,13 @@ function PartModal({
             </label>
           </div>
 
-          <div className="modal-actions">
-            <button className="primary-button" type="submit" disabled={isSaving}>
+          <div className="modal_actions">
+            <button className="primary_button" type="submit" disabled={isSaving}>
               {isSaving ? "Сохранение..." : "Сохранить"}
             </button>
 
             <button
-              className="secondary-button secondary-button--large"
+              className="secondary_button _large"
               type="button"
               onClick={onClose}
             >
@@ -7249,8 +7244,8 @@ function NomenclatureModal({
 
   return (
     <ModalBackdrop onClose={onClose}>
-      <section className="reference-modal reference-modal--wide">
-        <div className="reference-modal__header">
+      <section className="reference_modal _wide">
+        <div className="reference_modal__header">
           <div>
             <p>Номенклатура деталей</p>
             <h2>{title}</h2>
@@ -7262,18 +7257,18 @@ function NomenclatureModal({
         </div>
 
         {error && (
-          <div className="system-message system-message--error">{error}</div>
+          <div className="system_message _error">{error}</div>
         )}
 
-        <form className="entity-form" onSubmit={onSubmit}>
+        <form className="entity_form" onSubmit={onSubmit}>
           {!isDelete && (
             <>
-              <div className="entity-form__row">
-                <label className="entity-form__field">
+              <div className="entity_form__row">
+                <label className="entity_form__field">
                   <span>Код детали</span>
                   <input
                     required
-                    className="entity-form__control"
+                    className="entity_form__control"
                     value={form.code}
                     onChange={(event) =>
                       onChangeForm("code", event.target.value)
@@ -7282,11 +7277,11 @@ function NomenclatureModal({
                   />
                 </label>
 
-                <label className="entity-form__field">
+                <label className="entity_form__field">
                   <span>Наименование</span>
                   <input
                     required
-                    className="entity-form__control"
+                    className="entity_form__control"
                     value={form.name}
                     onChange={(event) =>
                       onChangeForm("name", event.target.value)
@@ -7296,12 +7291,12 @@ function NomenclatureModal({
                 </label>
               </div>
 
-              <div className="entity-form__row">
-                <label className="entity-form__field">
+              <div className="entity_form__row">
+                <label className="entity_form__field">
                   <span>Категория</span>
                   <select
                     required
-                    className="entity-form__control"
+                    className="entity_form__control"
                     value={form.category}
                     onChange={(event) =>
                       onChangeForm("category", event.target.value)
@@ -7316,11 +7311,11 @@ function NomenclatureModal({
                   </select>
                 </label>
 
-                <label className="entity-form__field">
+                <label className="entity_form__field">
                   <span>Материал</span>
                   <select
                     required
-                    className="entity-form__control"
+                    className="entity_form__control"
                     value={form.material}
                     onChange={(event) =>
                       onChangeForm("material", event.target.value)
@@ -7336,11 +7331,11 @@ function NomenclatureModal({
                 </label>
               </div>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Номер чертежа</span>
                 <input
                   required
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={form.drawing}
                   onChange={(event) =>
                     onChangeForm("drawing", event.target.value)
@@ -7353,7 +7348,7 @@ function NomenclatureModal({
 
           {isDelete && (
             <>
-              <div className="delete-warning delete-warning--merge">
+              <div className="delete_warning _merge">
                 <b>
                   Вы удаляете: {modal.item?.code} — {modal.item?.name}
                 </b>
@@ -7373,7 +7368,7 @@ function NomenclatureModal({
               </div>
 
               {deletedPart && (
-                <div className="merge-summary">
+                <div className="merge_summary">
                   <div>
                     <span>Текущая карточка</span>
                     <b>{deletedPart.code} — {deletedPart.name}</b>
@@ -7393,7 +7388,7 @@ function NomenclatureModal({
                 </div>
               )}
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>
                   {isUsedInPart
                     ? "Объединить с номенклатурой"
@@ -7401,7 +7396,7 @@ function NomenclatureModal({
                 </span>
                 <select
                   required={isUsedInPart}
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={replacementId}
                   onChange={(event) => onChangeReplacementId(event.target.value)}
                 >
@@ -7427,7 +7422,7 @@ function NomenclatureModal({
               </label>
 
               {isUsedInPart && replacementId && (
-                <div className="merge-plan">
+                <div className="merge_plan">
                   <b>Что произойдет после подтверждения</b>
                   <span>
                     Закупки удаляемой карточки будут перепривязаны к выбранной
@@ -7437,7 +7432,7 @@ function NomenclatureModal({
                   </span>
 
                   {replacementPart && deletedPart && (
-                    <div className="merge-plan__grid">
+                    <div className="merge_plan__grid">
                       <div>
                         <span>Основная карточка сейчас</span>
                         <b>
@@ -7457,10 +7452,10 @@ function NomenclatureModal({
             </>
           )}
 
-          <div className="modal-actions">
+          <div className="modal_actions">
             <button
               className={
-                isDelete ? "danger-button danger-button--large" : "primary-button"
+                isDelete ? "danger_button _large" : "primary_button"
               }
               type="submit"
               disabled={isDeleteDisabled}
@@ -7477,7 +7472,7 @@ function NomenclatureModal({
             </button>
 
             <button
-              className="secondary-button secondary-button--large"
+              className="secondary_button _large"
               type="button"
               onClick={onClose}
             >
@@ -7528,8 +7523,8 @@ function ReferenceModal({
 
   return (
     <ModalBackdrop onClose={onClose}>
-      <section className="reference-modal">
-        <div className="reference-modal__header">
+      <section className="reference_modal">
+        <div className="reference_modal__header">
           <div>
             <p>{getReferenceTitle(modal.kind)}</p>
             <h2>{title}</h2>
@@ -7541,17 +7536,17 @@ function ReferenceModal({
         </div>
 
         {error && (
-          <div className="system-message system-message--error">{error}</div>
+          <div className="system_message _error">{error}</div>
         )}
 
-        <form className="entity-form" onSubmit={onSubmit}>
+        <form className="entity_form" onSubmit={onSubmit}>
           {!isDelete && (
             <>
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Название</span>
                 <input
                   required
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={form.name}
                   onChange={(event) =>
                     onChangeForm("name", event.target.value)
@@ -7560,10 +7555,10 @@ function ReferenceModal({
                 />
               </label>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Описание</span>
                 <input
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={form.description}
                   onChange={(event) =>
                     onChangeForm("description", event.target.value)
@@ -7576,7 +7571,7 @@ function ReferenceModal({
 
           {isDelete && (
             <>
-              <div className="delete-warning">
+              <div className="delete_warning">
                 <b>Вы удаляете: {modal.item?.name}</b>
                 <span>
                   Если запись уже используется в карточках деталей,
@@ -7585,10 +7580,10 @@ function ReferenceModal({
                 </span>
               </div>
 
-              <label className="entity-form__field">
+              <label className="entity_form__field">
                 <span>Заменить на</span>
                 <select
-                  className="entity-form__control"
+                  className="entity_form__control"
                   value={replacementName}
                   onChange={(event) =>
                     onChangeReplacementName(event.target.value)
@@ -7608,10 +7603,10 @@ function ReferenceModal({
             </>
           )}
 
-          <div className="modal-actions">
+          <div className="modal_actions">
             <button
               className={
-                isDelete ? "danger-button danger-button--large" : "primary-button"
+                isDelete ? "danger_button _large" : "primary_button"
               }
               type="submit"
               disabled={isSaving}
@@ -7626,7 +7621,7 @@ function ReferenceModal({
             </button>
 
             <button
-              className="secondary-button secondary-button--large"
+              className="secondary_button _large"
               type="button"
               onClick={onClose}
             >
@@ -7651,7 +7646,7 @@ function InfoModal({
   return (
     <ModalBackdrop onClose={onClose}>
       <section
-        className={hasImage ? "reference-modal reference-modal--wide" : "reference-modal"}
+        className={hasImage ? "reference_modal _wide" : "reference_modal"}
         style={
           hasImage
             ? {
@@ -7660,7 +7655,7 @@ function InfoModal({
             : undefined
         }
       >
-        <div className="reference-modal__header">
+        <div className="reference_modal__header">
           <div>
             <p>{modal.subtitle || "Карточка"}</p>
             <h2>{modal.title}</h2>
@@ -7737,7 +7732,7 @@ function InfoModal({
           )}
 
           <div
-            className="info-list"
+            className="info_list"
             style={{
               display: "grid",
               gap: "10px",
@@ -7745,7 +7740,7 @@ function InfoModal({
             }}
           >
             {modal.rows.map((row) => (
-              <div className="info-list__row" key={row.label}>
+              <div className="info_list__row" key={row.label}>
                 <span>{row.label}</span>
                 <b>{row.value}</b>
               </div>
@@ -7770,7 +7765,7 @@ function MetricCard({
 }) {
   return (
     <article
-      className={danger ? "metric-card metric-card--danger" : "metric-card"}
+      className={danger ? "metric_card _danger" : "metric_card"}
     >
       <span>{title}</span>
       <b>{value}</b>
