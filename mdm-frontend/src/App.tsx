@@ -976,6 +976,15 @@ function App() {
       ? "Сервис недоступен"
       : "Сервис подключен";
 
+  function resetViewportScroll() {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document
+        .querySelector(".mdm_sidebar")
+        ?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }
+
   function setPage(nextPage: Page) {
     const safePage: Page = isPageAllowedForRole(nextPage, role)
       ? nextPage
@@ -983,6 +992,7 @@ function App() {
 
     localStorage.setItem(ACTIVE_PAGE_STORAGE_KEY, safePage);
     setIsMobileMenuOpen(false);
+    resetViewportScroll();
 
     if (getPageFromHash() === safePage) {
       setPageState(safePage);
@@ -1859,7 +1869,9 @@ function App() {
       storeAuthSession(session);
       setAuthSession(session);
       setLoginForm({ username: "", password: "" });
+      setIsMobileMenuOpen(false);
       setPage("dashboard");
+      resetViewportScroll();
     } catch (requestError) {
       setLoginError(getErrorMessage(requestError, "Ошибка входа в систему"));
     } finally {
@@ -1882,7 +1894,9 @@ function App() {
     setDrawingStorageIssues([]);
     setOperationLog([]);
     setCurrentEmployeeId("");
+    setIsMobileMenuOpen(false);
     setPage("dashboard");
+    resetViewportScroll();
   }
 
   const loadData = useCallback(async function loadData() {
@@ -2317,7 +2331,18 @@ function App() {
   }, [page, role]);
 
   useEffect(() => {
-    if (!authSession) {
+    useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const sidebar = document.querySelector(".mdm_sidebar");
+      sidebar?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [isMobileMenuOpen]);
+
+  if (!authSession) {
       return;
     }
 
@@ -2414,6 +2439,17 @@ function App() {
     deleteReplacementName,
     deleteReplacementNameInitial
   ]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      const sidebar = document.querySelector(".mdm_sidebar");
+      sidebar?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  }, [isMobileMenuOpen]);
 
   if (!authSession) {
     return (
