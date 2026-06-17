@@ -2317,38 +2317,7 @@ function App() {
   }, [page, role]);
 
   useEffect(() => {
-    /* Bottom mobile menu floating trigger. */
-  useEffect(() => {
     if (!authSession) {
-      return undefined;
-    }
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mobile_menu__floating_button";
-    button.setAttribute("aria-label", "Открыть меню");
-    button.innerHTML = `
-      <span class="mobile_menu__floating_icon" aria-hidden="true">
-        <span class="mobile_menu__floating_line"></span>
-        <span class="mobile_menu__floating_line"></span>
-        <span class="mobile_menu__floating_line"></span>
-      </span>
-      <span class="mobile_menu__floating_text">Меню</span>
-    `;
-
-    button.addEventListener("click", () => {
-      setIsMobileMenuOpen(true);
-    });
-
-    document.body.appendChild(button);
-
-    return () => {
-      button.remove();
-    };
-  }, [authSession]);
-  /* End bottom mobile menu floating trigger. */
-
-  if (!authSession) {
       return;
     }
 
