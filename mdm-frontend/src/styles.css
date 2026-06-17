@@ -3978,17 +3978,19 @@ table.data_table,
   }
 }
 
-/* Restore sticky mobile header only. */
+/* Clean mobile sticky header and sidebar fix. */
 @media (max-width: 768px) {
   html,
   body,
   #root {
     width: 100%;
     min-width: 0;
+    margin: 0;
     overflow-x: hidden;
   }
 
   .mdm_app {
+    position: relative;
     width: 100%;
     min-width: 0;
     min-height: 100dvh;
@@ -4000,26 +4002,21 @@ table.data_table,
     min-width: 0;
     max-width: 100vw;
     overflow-x: hidden;
-    padding-top: 12px !important;
   }
 
   .system_topbar {
     position: sticky !important;
-    top: 0 !important;
-    z-index: 950 !important;
+    top: 10px !important;
+    z-index: 900 !important;
 
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 0 18px !important;
     box-sizing: border-box;
-
-    overflow: visible !important;
-    clip-path: none !important;
-    transform: none !important;
+    overflow: hidden;
   }
 
   .system_topbar > * {
-    min-width: 0 !important;
+    min-width: 0;
   }
 
   .system_topbar button:first-child,
@@ -4042,13 +4039,14 @@ table.data_table,
 
   .breadcrumbs {
     min-width: 0 !important;
+    max-width: 100% !important;
     overflow: hidden !important;
   }
 
   .breadcrumbs span:first-child,
   .breadcrumbs b {
-    display: block;
     min-width: 0 !important;
+    max-width: 100% !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -4087,13 +4085,56 @@ table.data_table,
     inset: 0 !important;
     z-index: 1000 !important;
   }
+
+  .profile_card,
+  .profile_card__person,
+  .profile_card__person > div,
+  .profile_card__person > div:last-child {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .profile_card__person {
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    align-items: center !important;
+  }
+
+  .profile_card__person b {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+
+    font-size: clamp(13px, 4vw, 16px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .profile_card__role {
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .page_header h1,
+  .hero_card h1,
+  .hero__title {
+    max-width: 100%;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
 }
 
 @media (max-width: 360px) {
-  .mdm_main {
-    padding-top: 10px !important;
-  }
-
   .system_topbar button:first-child,
   .system_topbar__burger,
   .mobile__burger,
@@ -4106,5 +4147,14 @@ table.data_table,
     height: 48px !important;
     min-width: 48px !important;
     min-height: 48px !important;
+  }
+
+  .profile_card__person {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .profile_card__person b {
+    font-size: 13px !important;
   }
 }
