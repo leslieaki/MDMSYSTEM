@@ -181,7 +181,7 @@ async function main(): Promise<void> {
       SELECT data.user_name, data.user_role, data.action, data.section, data.description
       FROM (
         VALUES
-          ('Суперадминистратор', 'superadmin', 'seed', 'database', 'Созданы демонстрационные данные для дипломного проекта'),
+          ('Суперадминистратор', 'superadmin', 'seed', 'database', 'Создан базовый набор данных предприятия'),
           ('Кузнецова А.А.', 'admin', 'approve', 'nomenclature', 'Проверены и утверждены базовые позиции номенклатуры')
       ) AS data(user_name, user_role, action, section, description)
       WHERE NOT EXISTS (
