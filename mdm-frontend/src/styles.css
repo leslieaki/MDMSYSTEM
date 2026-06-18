@@ -4650,3 +4650,338 @@ select::-ms-expand {
     background-position: right 16px center;
   }
 }
+
+/* Stable users desktop table fix. */
+.users_table_card {
+  overflow: visible;
+}
+
+.users_table.data_table,
+.users_table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.users_table .users_table__row {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 1.25fr)
+    minmax(140px, 1fr)
+    minmax(130px, 0.78fr)
+    minmax(105px, 0.58fr)
+    minmax(145px, 0.78fr)
+    minmax(150px, 0.72fr);
+  min-width: 0;
+  width: 100%;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.users_table .users_table__row._head {
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.25;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.users_table .users_table__row > span {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.users_table .users_table__row._head > span {
+  min-height: auto;
+}
+
+.users_table .users_table__row > span b,
+.users_table .users_table__row > span small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.users_table .users_table__row > span b {
+  color: var(--text);
+  font-weight: 900;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.users_table .users_table__row > span small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.users_table .users_table__row > span:nth-child(3),
+.users_table .users_table__row > span:nth-child(4),
+.users_table .users_table__row > span:nth-child(5),
+.users_table .users_table__row > span:nth-child(6) {
+  justify-content: center;
+}
+
+.users_table .users_table__actions {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+.users_table .users_table__actions .secondary_button {
+  width: auto;
+  min-width: 86px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 14px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.users_status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.users_status._active {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.users_status._blocked {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.data_table._employees {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.data_table._employees .data_table__row {
+  grid-template-columns:
+    minmax(180px, 1.25fr)
+    minmax(160px, 1fr)
+    minmax(130px, 0.72fr)
+    minmax(110px, 0.55fr);
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+}
+
+.data_table._employees .data_table__row > span {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.data_table._employees .data_table__row > span b,
+.data_table._employees .data_table__row > span small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.data_table._employees .data_table__row > span b {
+  white-space: nowrap;
+}
+
+select,
+.entity_form__control:is(select),
+.users_form select,
+.warehouse_filters select,
+.purchases_filters select,
+.parts_filters select,
+.reports_filters select,
+.report_filters select,
+.nsi_filters select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 48px;
+  background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10L12 15L17 10' stroke='%23172033' stroke-width='2.35' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+  background-size: 18px 18px;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+@media (max-width: 920px) {
+  .users_table.data_table,
+  .users_table,
+  .data_table._employees {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
+  }
+
+  .users_table .users_table__row {
+    grid-template-columns:
+      minmax(180px, 1.15fr)
+      minmax(160px, 0.92fr)
+      minmax(145px, 0.78fr)
+      minmax(120px, 0.58fr)
+      minmax(160px, 0.78fr)
+      minmax(170px, 0.72fr);
+    min-width: 940px;
+  }
+
+  .data_table._employees .data_table__row {
+    grid-template-columns:
+      minmax(210px, 1.2fr)
+      minmax(190px, 1fr)
+      minmax(150px, 0.72fr)
+      minmax(130px, 0.55fr);
+    min-width: 720px;
+  }
+}
+
+@media (max-width: 560px) {
+  .users_table.data_table,
+  .users_table {
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .users_table .users_table__row._head {
+    display: none;
+  }
+
+  .users_table .users_table__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-width: 0;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ffffff, #f8fbff);
+  }
+
+  .users_table .users_table__row > span {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    min-height: 0;
+    gap: 8px;
+    align-items: start;
+  }
+
+  .users_table .users_table__row > span::before {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 950;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .users_table .users_table__row > span:nth-child(1)::before {
+    content: "Пользователь";
+  }
+
+  .users_table .users_table__row > span:nth-child(2)::before {
+    content: "Подразделение";
+  }
+
+  .users_table .users_table__row > span:nth-child(3)::before {
+    content: "Роль";
+  }
+
+  .users_table .users_table__row > span:nth-child(4)::before {
+    content: "Статус";
+  }
+
+  .users_table .users_table__row > span:nth-child(5)::before {
+    content: "Создан";
+  }
+
+  .users_table .users_table__row > span:nth-child(6)::before {
+    content: "Действия";
+  }
+
+  .users_table .users_table__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .users_table .users_table__actions .secondary_button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .data_table._employees {
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .data_table._employees .data_table__row._head {
+    display: none;
+  }
+
+  .data_table._employees .data_table__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-width: 0;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ffffff, #f8fbff);
+  }
+}
