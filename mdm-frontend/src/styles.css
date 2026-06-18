@@ -4211,3 +4211,167 @@ table.data_table,
     letter-spacing: 0.035em;
   }
 }
+
+/* Final warehouse shortage layout fix. */
+.warehouse_deficit_card {
+  display: grid;
+  gap: 22px;
+  padding: clamp(22px, 3vw, 34px);
+}
+
+.warehouse_deficit_card .content_card__header {
+  margin: 0;
+}
+
+.warehouse_deficit_card .content_card__header h2 {
+  max-width: 760px;
+}
+
+.warehouse_shortage_list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.warehouse_shortage_item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title status"
+    "metrics metrics";
+  gap: 18px;
+  width: 100%;
+  min-height: 188px;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94)),
+    #ffffff;
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 18px 42px rgba(15, 34, 64, 0.08);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.warehouse_shortage_item:hover {
+  border-color: rgba(34, 92, 255, 0.28);
+  box-shadow: 0 22px 56px rgba(15, 34, 64, 0.13);
+  transform: translateY(-2px);
+}
+
+.warehouse_shortage_item > div:first-child {
+  grid-area: title;
+  min-width: 0;
+}
+
+.warehouse_shortage_item > div:first-child b {
+  display: block;
+  margin: 0;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.2;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.warehouse_shortage_item > div:first-child span {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted-strong);
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.warehouse_shortage_item .warehouse_status {
+  grid-area: status;
+  align-self: start;
+  justify-self: end;
+  width: fit-content;
+  max-width: 180px;
+  white-space: nowrap;
+}
+
+.warehouse_shortage_metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.warehouse_shortage_metrics span {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.84);
+}
+
+.warehouse_shortage_metrics span b {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+}
+
+.warehouse_shortage_metrics span strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+@media (max-width: 1100px) {
+  .warehouse_shortage_list {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse_shortage_item {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .warehouse_deficit_card {
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .warehouse_shortage_item {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "status"
+      "metrics";
+    gap: 14px;
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .warehouse_shortage_item .warehouse_status {
+    justify-self: start;
+  }
+
+  .warehouse_shortage_metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse_shortage_metrics span {
+    padding: 12px;
+  }
+}
