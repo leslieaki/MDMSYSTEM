@@ -4167,3 +4167,47 @@ table.data_table,
     font-size: 12px;
   }
 }
+
+/* Final profile role badge fix. */
+.profile_card__role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  box-sizing: border-box;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .profile_card__role {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 30px;
+    padding: 7px 14px;
+    align-self: start;
+    justify-self: start;
+    font-size: 12px;
+    letter-spacing: 0.045em;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile_card__role {
+    max-width: 100%;
+    padding: 7px 12px;
+    font-size: 11px;
+    letter-spacing: 0.035em;
+  }
+}
