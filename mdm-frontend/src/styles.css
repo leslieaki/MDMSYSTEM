@@ -932,7 +932,7 @@ textarea.entity_form__control,
 .data_table__row b,
 .data_table__row small {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .data_table__row b,
@@ -1182,7 +1182,7 @@ table.data_table tbody tr:hover td,
 .warehouse_shortage_item small {
   display: block;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .warehouse_shortage_item b {
@@ -1367,7 +1367,7 @@ table.data_table tbody tr:hover td,
 .simple_list__item b {
   display: block;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   color: var(--text);
   font-size: 15px;
 }
@@ -1378,7 +1378,7 @@ table.data_table tbody tr:hover td,
   display: block;
   min-width: 0;
   margin-top: 5px;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   color: var(--muted-strong);
   font-size: 13px;
   line-height: 1.4;
@@ -1673,7 +1673,7 @@ table.data_table tbody tr:hover td,
 }
 
 .info_list__row b {
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   color: var(--text);
   font-size: 14px;
 }
@@ -2002,7 +2002,7 @@ table.data_table tbody tr:hover td,
 .storage__item span,
 .storage__item small {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .storage__item b {
@@ -2333,7 +2333,7 @@ table.data_table tbody tr:hover td,
 
 .detail_field strong {
   display: block;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   color: #f8fafc;
   font-size: 15px;
   line-height: 1.4;
@@ -3571,8 +3571,8 @@ table.data_table,
 }
 
 .users_table__actions {
-  flex-direction: row !important;
-  align-items: center !important;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
 }
 
@@ -3903,7 +3903,7 @@ table.data_table,
   .mdm_logo__content b {
     font-size: 18px;
     line-height: 1.15;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
   }
 
   .profile_card {
@@ -3916,7 +3916,7 @@ table.data_table,
   }
 
   .profile_card__person b {
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
   }
 
   .mdm_login_page {
@@ -3978,7 +3978,282 @@ table.data_table,
   }
 }
 
-/* Mobile fixed header layout fix. */
+/* Targeted responsive repair v2. */
+body,
+button,
+input,
+select,
+textarea,
+table {
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+body {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+button,
+.primary_button,
+.secondary_button,
+.danger_button,
+.table_action_button,
+.mdm_nav__title,
+.content_card__eyebrow,
+.page_header__eyebrow {
+  font-weight: 900;
+}
+
+h1,
+h2,
+h3,
+.page_header__title,
+.content_card__header h2,
+.metric_card b,
+.metric_card strong {
+  font-weight: 950;
+}
+
+.page_shell,
+.content_card,
+.content_card__header,
+.content_card__header > div,
+.page_header,
+.profile_card,
+.profile_card__person,
+.profile_card__person > div,
+.profile_card__meta,
+.data_table,
+.data_table__row,
+.data_table__row > span,
+.reference_item,
+.nomenclature_item,
+.storage__item,
+.drawing_card,
+.drawing_card__content {
+  min-width: 0;
+}
+
+.page_header__title,
+.content_card__header h2,
+.data_table__row span,
+.data_table__row b,
+.data_table__row small,
+.profile_card__person b,
+.profile_card__person span,
+.reference_item b,
+.reference_item span,
+.nomenclature_item b,
+.nomenclature_item span,
+.storage__item b,
+.storage__item span,
+.drawing_card b,
+.drawing_card span {
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.profile_card__person b,
+.profile_card__person span,
+.profile_card__role,
+.data_table__row b,
+.data_table__row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile_card__person b,
+.profile_card__person span,
+.profile_card__role {
+  white-space: nowrap;
+}
+
+.profile_card__person {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.profile_card__avatar {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+}
+
+.profile_card__role {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
+  line-height: 1;
+}
+
+.data_table._dense {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.data_table._dense .data_table__row {
+  min-width: 620px;
+  grid-template-columns: minmax(170px, 1.15fr) minmax(150px, 0.9fr) minmax(80px, 0.45fr) minmax(100px, 0.55fr);
+}
+
+.users_table_card {
+  overflow: hidden;
+}
+
+.users_table,
+.employees_table {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.users_table__row {
+  grid-template-columns: minmax(220px, 1.25fr) minmax(190px, 1fr) minmax(150px, 0.75fr) minmax(120px, 0.55fr) minmax(160px, 0.75fr) minmax(180px, 0.8fr);
+  min-width: 1020px;
+}
+
+.employees_table .data_table__row {
+  grid-template-columns: minmax(230px, 1.3fr) minmax(190px, 1fr) minmax(150px, 0.75fr) minmax(120px, 0.55fr);
+  min-width: 780px;
+}
+
+.users_table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.users_table__actions .secondary_button {
+  width: auto;
+  min-width: 92px;
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.warehouse_shortage_list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.warehouse_shortage_item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title status"
+    "metrics metrics";
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+  padding: 20px;
+  text-align: left;
+}
+
+.warehouse_shortage_item > div:first-child {
+  grid-area: title;
+  min-width: 0;
+}
+
+.warehouse_shortage_item .warehouse_status {
+  grid-area: status;
+  align-self: start;
+  justify-self: end;
+  max-width: 180px;
+}
+
+.warehouse_shortage_item > small {
+  grid-area: metrics;
+  display: block;
+  color: var(--muted-strong);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.warehouse_shortage_item b {
+  display: block;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.warehouse_shortage_item span {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.42;
+}
+
+.warehouse_shortage_metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.warehouse_shortage_metrics span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.84);
+}
+
+.warehouse_shortage_metrics span b {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.warehouse_shortage_metrics span strong {
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+.drawings_grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.drawing_card .reference_actions {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+}
+
+.drawing_card .secondary_button,
+.drawing_card .primary_button,
+.drawing_card .danger_button {
+  min-width: 0;
+  padding-inline: 12px;
+  white-space: normal;
+}
+
+@media (max-width: 1100px) {
+  .warehouse_shortage_list,
+  .drawings_grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   html,
   body,
@@ -3989,37 +4264,38 @@ table.data_table,
   }
 
   .mdm_app {
+    display: block;
     width: 100%;
-    min-width: 0;
     min-height: 100dvh;
     overflow-x: hidden;
   }
 
   .mdm_main {
     width: 100%;
-    min-width: 0;
     max-width: 100vw;
+    padding: 214px 12px 34px;
     overflow-x: hidden;
-    padding-top: 224px;
   }
 
   .system_topbar {
     position: fixed;
-    top: 12px;
+    top: 10px;
     left: 50%;
     z-index: 1000;
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px 12px;
     width: min(420px, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
-    min-width: 0;
     margin: 0;
-    box-sizing: border-box;
+    padding: 10px 12px;
+    border-radius: 22px;
     transform: translateX(-50%);
     overflow: visible;
-    clip-path: none;
   }
 
-  .system_topbar > * {
-    min-width: 0;
+  .topbar__left {
+    display: contents;
   }
 
   .system_topbar button:first-child,
@@ -4029,8 +4305,8 @@ table.data_table,
   .burger_button,
   button[aria-label="Открыть меню"],
   button[aria-label="Меню"] {
-    position: static;
-    flex: 0 0 52px;
+    grid-column: 1;
+    grid-row: 1;
     width: 52px;
     height: 52px;
     min-width: 52px;
@@ -4038,18 +4314,35 @@ table.data_table,
   }
 
   .breadcrumbs {
-    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
     overflow: hidden;
   }
 
   .breadcrumbs span:first-child,
   .breadcrumbs b {
     display: block;
-    min-width: 0;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .system_topbar__right {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+
+  .system_chip {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 11px;
   }
 
   .mdm_sidebar {
@@ -4058,13 +4351,11 @@ table.data_table,
     z-index: 1100;
     width: min(330px, 88vw);
     height: 100dvh;
-    min-height: 100dvh;
     max-height: 100dvh;
     margin: 0;
     border-radius: 0;
-    box-sizing: border-box;
-    overflow-y: auto;
     overflow-x: hidden;
+    overflow-y: auto;
     overscroll-behavior: contain;
     transform: translateX(-105%);
   }
@@ -4079,58 +4370,171 @@ table.data_table,
     z-index: 1050;
   }
 
-  .profile_card,
-  .profile_card__person,
-  .profile_card__person > div,
-  .profile_card__person > div:last-child {
-    min-width: 0;
-    max-width: 100%;
+  .page_header {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 18px;
   }
 
-  .profile_card__person {
+  .page_header__title {
+    font-size: clamp(26px, 9vw, 38px);
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+  }
+
+  .page_header__description {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .content_card,
+  .metric_card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .content_card__header {
     display: grid;
-    grid-template-columns: 52px minmax(0, 1fr);
-    align-items: center;
+    grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .profile_card__avatar {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
-    min-height: 52px;
+  .content_card__header h2 {
+    font-size: 24px;
+    line-height: 1.14;
   }
 
-  .profile_card__person b,
-  .profile_card__person span,
-  .profile_card__role {
-    display: block;
+  .metrics_grid,
+  .warehouse_kpi_grid,
+  .purchases_kpi_grid,
+  .parts_kpi_grid,
+  .users_page__metrics,
+  .reference_grid,
+  .drawings_grid,
+  .mdm_quality_summary,
+  .warehouse_filters,
+  .purchases_filters,
+  .parts_filters,
+  .purchases_form,
+  .purchases_form__hint,
+  .admin_actions {
+    grid-template-columns: 1fr;
+  }
+
+  .entity_form__row,
+  .users_form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .primary_button,
+  .secondary_button,
+  .danger_button,
+  .table_action_button,
+  .content_card__actions > button,
+  .reference_actions > button {
+    width: 100%;
+  }
+
+  .users_table,
+  .employees_table {
+    display: grid;
+    gap: 12px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .users_table__row._head,
+  .employees_table .data_table__row._head {
+    display: none;
+  }
+
+  .users_table__row:not(._head),
+  .employees_table .data_table__row:not(._head) {
+    display: grid;
+    grid-template-columns: 1fr;
     min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    word-break: normal;
-    overflow-wrap: normal;
-    hyphens: none;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ffffff, #f8fbff);
+  }
+
+  .users_table__row:not(._head) > span,
+  .employees_table .data_table__row:not(._head) > span {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+
+  .users_table__row:not(._head) > span::before,
+  .employees_table .data_table__row:not(._head) > span::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .users_table__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .users_table__actions::before {
+    grid-column: 1 / -1;
+  }
+
+  .users_table__actions .secondary_button {
+    width: 100%;
+    min-width: 0;
+    color: var(--primary);
+  }
+
+  .data_table._dense .data_table__row {
+    min-width: 560px;
+  }
+
+  .warehouse_shortage_list {
+    grid-template-columns: 1fr;
+  }
+
+  .warehouse_shortage_item {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "status"
+      "metrics";
+    padding: 18px;
+  }
+
+  .warehouse_shortage_item .warehouse_status {
+    justify-self: start;
+  }
+
+  .warehouse_shortage_metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .drawing_card .reference_actions {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 420px) {
   .mdm_main {
-    padding-top: 214px;
+    padding: 206px 10px 30px;
   }
 
   .system_topbar {
-    top: 10px;
+    top: 8px;
     width: calc(100vw - 20px);
-    max-width: calc(100vw - 20px);
-  }
-}
-
-@media (max-width: 360px) {
-  .mdm_main {
-    padding-top: 206px;
+    padding: 10px;
   }
 
   .system_topbar button:first-child,
@@ -4140,7 +4544,6 @@ table.data_table,
   .burger_button,
   button[aria-label="Открыть меню"],
   button[aria-label="Меню"] {
-    flex-basis: 48px;
     width: 48px;
     height: 48px;
     min-width: 48px;
@@ -4166,212 +4569,14 @@ table.data_table,
   .profile_card__person span {
     font-size: 12px;
   }
-}
 
-/* Final profile role badge fix. */
-.profile_card__role {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  max-width: 100%;
-  min-height: 32px;
-  padding: 7px 16px;
-  border-radius: 999px;
-  box-sizing: border-box;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (max-width: 768px) {
-  .profile_card__role {
-    display: inline-flex;
-    width: fit-content;
-    max-width: 100%;
-    min-height: 30px;
-    padding: 7px 14px;
-    align-self: start;
-    justify-self: start;
-    font-size: 12px;
-    letter-spacing: 0.045em;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-@media (max-width: 360px) {
-  .profile_card__role {
-    max-width: 100%;
-    padding: 7px 12px;
-    font-size: 11px;
-    letter-spacing: 0.035em;
-  }
-}
-
-/* Final warehouse shortage layout fix. */
-.warehouse_deficit_card {
-  display: grid;
-  gap: 22px;
-  padding: clamp(22px, 3vw, 34px);
-}
-
-.warehouse_deficit_card .content_card__header {
-  margin: 0;
-}
-
-.warehouse_deficit_card .content_card__header h2 {
-  max-width: 760px;
-}
-
-.warehouse_shortage_list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  align-items: stretch;
-  width: 100%;
-}
-
-.warehouse_shortage_item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "title status"
-    "metrics metrics";
-  gap: 18px;
-  width: 100%;
-  min-height: 188px;
-  padding: 22px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.94)),
-    #ffffff;
-  color: var(--text);
-  text-align: left;
-  box-shadow: 0 18px 42px rgba(15, 34, 64, 0.08);
-  cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-.warehouse_shortage_item:hover {
-  border-color: rgba(34, 92, 255, 0.28);
-  box-shadow: 0 22px 56px rgba(15, 34, 64, 0.13);
-  transform: translateY(-2px);
-}
-
-.warehouse_shortage_item > div:first-child {
-  grid-area: title;
-  min-width: 0;
-}
-
-.warehouse_shortage_item > div:first-child b {
-  display: block;
-  margin: 0;
-  color: var(--text);
-  font-size: 18px;
-  font-weight: 950;
-  line-height: 1.2;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.warehouse_shortage_item > div:first-child span {
-  display: block;
-  margin-top: 8px;
-  color: var(--muted-strong);
-  font-size: 15px;
-  line-height: 1.45;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
-.warehouse_shortage_item .warehouse_status {
-  grid-area: status;
-  align-self: start;
-  justify-self: end;
-  width: fit-content;
-  max-width: 180px;
-  white-space: nowrap;
-}
-
-.warehouse_shortage_metrics {
-  grid-area: metrics;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  width: 100%;
-}
-
-.warehouse_shortage_metrics span {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  margin: 0;
-  padding: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 18px;
-  background: rgba(248, 250, 252, 0.84);
-}
-
-.warehouse_shortage_metrics span b {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: 0.04em;
-}
-
-.warehouse_shortage_metrics span strong {
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 950;
-  line-height: 1.2;
-}
-
-@media (max-width: 1100px) {
-  .warehouse_shortage_list {
+  .users_table__row:not(._head) > span,
+  .employees_table .data_table__row:not(._head) > span {
     grid-template-columns: 1fr;
+    gap: 4px;
   }
 
-  .warehouse_shortage_item {
-    min-height: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .warehouse_deficit_card {
-    gap: 18px;
-    padding: 20px;
-  }
-
-  .warehouse_shortage_item {
+  .users_table__actions {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "title"
-      "status"
-      "metrics";
-    gap: 14px;
-    padding: 18px;
-    border-radius: 22px;
-  }
-
-  .warehouse_shortage_item .warehouse_status {
-    justify-self: start;
-  }
-
-  .warehouse_shortage_metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .warehouse_shortage_metrics span {
-    padding: 12px;
   }
 }

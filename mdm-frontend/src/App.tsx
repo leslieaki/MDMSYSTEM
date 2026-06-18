@@ -3725,13 +3725,13 @@ function UsersPage({
 
               return (
                 <div className="data_table__row users_table__row" key={user.id}>
-                  <span>
+                  <span data-label="Пользователь">
                     <b>{user.displayName}</b>
                     <small>{user.username}</small>
                   </span>
-                  <span>{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
-                  <span>{getRoleTitle(user.role)}</span>
-                  <span>
+                  <span data-label="Подразделение">{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
+                  <span data-label="Роль">{getRoleTitle(user.role)}</span>
+                  <span data-label="Статус">
                     <b
                       className={
                         user.isActive
@@ -3742,8 +3742,8 @@ function UsersPage({
                       {user.isActive ? "Активен" : "Отключен"}
                     </b>
                   </span>
-                  <span>{formatDateTime(user.createdAt)}</span>
-                  <span className="users_table__actions">
+                  <span data-label="Создан">{formatDateTime(user.createdAt)}</span>
+                  <span className="users_table__actions" data-label="Действия">
                     <button
                       className="secondary_button"
                       disabled={!canEditUser}
@@ -6436,7 +6436,7 @@ function EmployeesPage({
         {isLoadingUsers ? (
           <div className="system_message">Загрузка сотрудников системы...</div>
         ) : (
-          <div className="data_table _employees">
+          <div className="data_table _employees employees_table">
             <div className="data_table__row _head">
               <span>ФИО</span>
               <span>Подразделение</span>
@@ -6451,13 +6451,13 @@ function EmployeesPage({
                 type="button"
                 onClick={() => openUserInfo(user)}
               >
-                <span>
+                <span data-label="ФИО">
                   <b>{user.displayName}</b>
                   <small>{user.username}</small>
                 </span>
-                <span>{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
-                <span>{getRoleTitle(user.role)}</span>
-                <span>{user.isActive ? "Активен" : "Отключен"}</span>
+                <span data-label="Подразделение">{user.role === "superadmin" ? "—" : user.departmentName || "Не назначено"}</span>
+                <span data-label="Роль">{getRoleTitle(user.role)}</span>
+                <span data-label="Статус">{user.isActive ? "Активен" : "Отключен"}</span>
               </button>
             ))}
 
@@ -6576,10 +6576,8 @@ function DrawingsPage({
         {parts.map((part) => {
           const drawingImage = drawingImages[String(part.id)];
           const actionColumns = canManageDrawings
-            ? drawingImage
-              ? "repeat(3, minmax(145px, 1fr))"
-              : "repeat(2, minmax(145px, 1fr))"
-            : "minmax(145px, 240px)";
+            ? "repeat(auto-fit, minmax(0, 1fr))"
+            : "minmax(0, 1fr)";
 
           return (
             <article
@@ -6634,7 +6632,7 @@ function DrawingsPage({
                       fontSize: "13px",
                       fontWeight: 900,
                       lineHeight: 1.45,
-                      overflowWrap: "anywhere",
+                      overflowWrap: "normal",
                       textAlign: "center"
                     }}
                   >
@@ -6668,7 +6666,7 @@ function DrawingsPage({
                         color: "var(--text)",
                         fontSize: "17px",
                         lineHeight: 1.3,
-                        overflowWrap: "anywhere"
+                        overflowWrap: "normal"
                       }}
                     >
                       {part.name}
@@ -6680,7 +6678,7 @@ function DrawingsPage({
                         color: "var(--muted)",
                         fontSize: "13px",
                         fontWeight: 800,
-                        overflowWrap: "anywhere"
+                        overflowWrap: "normal"
                       }}
                     >
                       {part.code} · {part.drawing}
@@ -7722,7 +7720,7 @@ function InfoModal({
                     fontSize: "13px",
                     fontWeight: 900,
                     textAlign: "center",
-                    overflowWrap: "anywhere"
+                    overflowWrap: "normal"
                   }}
                 >
                   {modal.image.caption}
