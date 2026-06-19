@@ -4985,3 +4985,108 @@ select::-ms-expand {
     background: linear-gradient(135deg, #ffffff, #f8fbff);
   }
 }
+
+/* Final profile name nowrap fix. */
+@media (max-width: 768px) {
+  .profile_card {
+    width: 100%;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .profile_card__person {
+    display: grid !important;
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 14px !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .profile_card__avatar {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+  }
+
+  .profile_card__person > div,
+  .profile_card__person > div:last-child {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .profile_card__person b {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+
+    font-size: 15px !important;
+    line-height: 1.15 !important;
+  }
+
+  .profile_card__person span {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+  }
+
+  .profile_card__meta {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .profile_card__role {
+    display: block !important;
+    max-width: 100% !important;
+
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    hyphens: none !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile_card__person {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .profile_card__avatar {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+
+  .profile_card__person b {
+    font-size: 13px !important;
+  }
+
+  .profile_card__person span {
+    font-size: 12px !important;
+  }
+}
