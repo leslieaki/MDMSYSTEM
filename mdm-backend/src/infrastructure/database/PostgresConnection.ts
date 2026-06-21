@@ -19,5 +19,8 @@ function getRequiredEnv(name: string): string {
 
 export const postgresPool = new Pool({
   connectionString: getRequiredEnv("DATABASE_URL"),
-  max: 10
+  max: 10,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
