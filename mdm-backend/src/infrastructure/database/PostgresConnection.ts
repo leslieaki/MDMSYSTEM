@@ -4,7 +4,6 @@ import { Pool } from "pg";
 
 dotenv.config({
   path: path.resolve(process.cwd(), ".env"),
-  override: true
 });
 
 function getRequiredEnv(name: string): string {
@@ -20,7 +19,5 @@ function getRequiredEnv(name: string): string {
 export const postgresPool = new Pool({
   connectionString: getRequiredEnv("DATABASE_URL"),
   max: 10,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined
 });
