@@ -395,7 +395,7 @@ function createAbsoluteApiUrl(path: string): string {
   }
 
   if (path.startsWith("/api/")) {
-    return `http://localhost:4000${path}`;
+    return `https://mdmsystem.onrender.com${path}`;
   }
 
   return `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
