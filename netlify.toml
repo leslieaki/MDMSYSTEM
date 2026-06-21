@@ -1,0 +1,4 @@
+[build]
+  base = "mdm-frontend"
+  command = "npm run build"
+  publish = "dist"
