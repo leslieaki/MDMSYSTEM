@@ -4,6 +4,7 @@ import { rateLimit } from "express-rate-limit";
 import { createApiRouter } from "./presentation/http/routes";
 
 const app = express();
+app.set('trust proxy', 1);
 const port = Number(process.env.PORT || 4000);
 
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "http://localhost:5173")
